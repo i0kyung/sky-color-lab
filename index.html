@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>하늘 연구소 · 대기의 색을 배우는 지구과학 게임</title>
+<meta name="description" content="하늘은 왜 그런 색일까? 대기 광학 원리를 추론 퀴즈와 색 조합 게임으로 배우는 교육용 웹 게임.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{--bg:#fafafa;--surface:#fff;--soft:#f4f4f5;--dark:#18181b;--border:#e8e8eb;--ink:#0a0a0a;--ink2:#3f3f46;--muted:#71717a;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.05);--shadow:0 10px 28px rgba(0,0,0,.08)}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:"Pretendard Variable","Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:clamp(28px,7vw,64px) 16px 40px}
+  .hero{text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:11.5px;font-weight:800;color:var(--ink2);letter-spacing:.04em;box-shadow:var(--shadow-sm)}
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:99px;background:linear-gradient(160deg,#3f7fd0,#e0663a)}
+  h1{margin:16px 0 10px;font-size:clamp(34px,7.5vw,58px);line-height:1.04;letter-spacing:-.045em;font-weight:900}
+  h1 em{font-style:normal;background:linear-gradient(120deg,#2f7fd6,#e0663a 60%,#8b46d6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{margin:0 auto;max-width:460px;font-size:15px;line-height:1.7;color:var(--ink2)}
+  .games{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:clamp(26px,5vw,40px)}
+  .game{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
+  .game:hover{transform:translateY(-5px);box-shadow:var(--shadow)}
+  .game:focus-visible{outline:3px solid rgba(24,24,27,.35);outline-offset:3px}
+  .sky{position:relative;aspect-ratio:16/9;overflow:hidden}
+  .sky.a{background:linear-gradient(180deg,#2f7fd6 0%,#78b4ec 55%,#cfe7fb 100%)}
+  .sky.b{animation:shift 9s ease-in-out infinite}
+  @keyframes shift{0%,100%{background:linear-gradient(180deg,#8fc4f0,#2f7fd6)}33%{background:linear-gradient(180deg,#ffd27a,#e0663a)}66%{background:linear-gradient(180deg,#3a4a7a,#0d1b4a)}}
+  .sun{position:absolute;left:76%;top:26%;width:46px;height:46px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 40% 40%,#fff 10%,#fffdf2 55%,#ffe9a8);box-shadow:0 0 34px 14px rgba(255,233,168,.55)}
+  .cloud{position:absolute;left:38%;top:62%;transform:translate(-50%,-50%);filter:drop-shadow(0 8px 12px rgba(0,0,0,.16));animation:float 4s ease-in-out infinite}
+  @keyframes float{50%{transform:translate(-50%,-56%)}}
+  .chips{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:6px}
+  .chips i{width:26px;height:26px;border-radius:9px;box-shadow:inset 0 -6px 8px rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.15)}
+  .body{padding:18px 20px 20px}
+  .tag{font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .body h2{margin:4px 0 6px;font-size:21px;letter-spacing:-.025em}
+  .body p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+  .go{margin-top:14px;display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:900}
+  .learn{margin-top:30px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px 20px;box-shadow:var(--shadow-sm)}
+  .learn h3{margin:0 0 10px;font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .learn ul{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+  .learn li{font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--border);color:var(--ink2)}
+  footer{text-align:center;color:var(--muted);font-size:11.5px;padding:28px 0 0;line-height:1.7}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <span class="eyebrow">지구과학 · 대기 광학</span>
+    <h1>하늘은 왜<br><em>그런 색일까?</em></h1>
+    <p class="lead">파란 하늘, 붉은 노을, 오로라와 무리까지. 하늘의 색을 만드는 대기 현상의 원리를 두 가지 게임으로 배워 보세요.</p>
+  </section>
+
+  <section class="games">
+    <a class="game" href="하늘의색.html">
+      <div class="sky a">
+        <div class="sun"></div>
+        <svg class="cloud" width="140" height="92" viewBox="0 0 120 80" aria-hidden="true">
+          <ellipse cx="42" cy="52" rx="34" ry="24" fill="#fff"/><ellipse cx="74" cy="48" rx="30" ry="26" fill="#fff"/>
+          <ellipse cx="60" cy="60" rx="46" ry="18" fill="#fff"/><ellipse cx="60" cy="42" rx="24" ry="20" fill="#fff"/>
+          <ellipse cx="50" cy="50" rx="3.4" ry="5" fill="#0a0a0a"/><ellipse cx="70" cy="50" rx="3.4" ry="5" fill="#0a0a0a"/>
+          <circle cx="43" cy="58" r="4.5" fill="#ff8a8a" opacity=".5"/><circle cx="77" cy="58" r="4.5" fill="#ff8a8a" opacity=".5"/>
+          <path d="M55 60 Q60 65 65 60" stroke="#0a0a0a" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".5"/></svg>
+      </div>
+      <div class="body">
+        <div class="tag">추론 퀴즈 · 12현상</div>
+        <h2>🌤️ 하늘의 색</h2>
+        <p>구름을 눌러 관측 데이터를 살피고, 하늘 색을 만든 원리를 맞혀 보세요. 맞히면 그 원리대로 하늘이 반응합니다.</p>
+        <span class="go">플레이 →</span>
+      </div>
+    </a>
+    <a class="game" href="하늘팔레트.html">
+      <div class="sky b">
+        <div class="chips">
+          <i style="background:linear-gradient(160deg,#bfe3ff,#2f7fd6)"></i><i style="background:linear-gradient(160deg,#ffd27a,#e0663a)"></i>
+          <i style="background:linear-gradient(160deg,#ffffff,#c3ccd3)"></i><i style="background:linear-gradient(160deg,#8a929c,#2b2f34)"></i>
+          <i style="background:linear-gradient(160deg,#d9b45a,#7a4a1e)"></i><i style="background:linear-gradient(160deg,#8affc0,#22a86a)"></i>
+        </div>
+      </div>
+      <div class="body">
+        <div class="tag">조합 게임 · 3모드</div>
+        <h2>🎨 하늘 팔레트</h2>
+        <p>상황을 읽고 대기 원인을 붓처럼 골라 하늘을 직접 만들어 보세요. 연습 · 일반 · 챌린지 모드.</p>
+        <span class="go">플레이 →</span>
+      </div>
+    </a>
+  </section>
+
+  <section class="learn">
+    <h3>배우는 개념</h3>
+    <ul>
+      <li>레일리 산란</li><li>미 산란</li><li>대기 통과 거리</li><li>빛의 감쇠</li><li>에어로졸 흡수</li>
+      <li>굴절·분산(무지개)</li><li>빙정 굴절(22° 무리)</li><li>오존 흡수(블루 아워)</li><li>대기 발광(오로라)</li>
+    </ul>
+  </section>
+
+  <footer>효과음은 Web Audio로 실시간 합성됩니다 · 각 게임의 🔊 버튼으로 끌 수 있어요<br>© 2026 민경 (@i0kyung). All rights reserved.</footer>
+</main>
+</body>
+</html>

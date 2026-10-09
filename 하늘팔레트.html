@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>하늘 팔레트 · 대기의 색을 조합하다</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{
+    --bg:#fafafa;--surface:#fff;--surface-soft:#f4f4f5;--surface-dark:#18181b;
+    --border:#e8e8eb;--border-strong:#d4d4d8;--ink:#0a0a0a;--ink-soft:#3f3f46;--muted:#71717a;--muted-dark:#a1a1aa;
+    --success:#16a34a;--danger:#dc2626;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04);--shadow:0 4px 14px rgba(0,0,0,.05);--shadow-lg:0 18px 44px rgba(0,0,0,.08);
+    --radius-sm:12px;--radius:18px;--radius-lg:26px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);background:var(--bg);
+    font-family:"Pretendard Variable","Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+  button:focus-visible{outline:3px solid rgba(24,24,27,.32);outline-offset:3px}
+  .wrap{max-width:720px;margin:0 auto;padding:0 clamp(14px,4vw,26px) 44px}
+
+  .site-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px clamp(2px,2vw,6px)}
+  .brand{display:flex;align-items:center;gap:11px;color:inherit;text-decoration:none}
+  .brand-icon{width:38px;height:38px;border-radius:11px;background:conic-gradient(from 200deg,#2f7fd6,#e0663a,#8b46d6,#2f7fd6);color:#fff;display:grid;place-items:center;font-size:19px;box-shadow:0 8px 18px rgba(15,23,42,.16)}
+  .brand-copy{display:flex;flex-direction:column;gap:1px;line-height:1.1}
+  .brand-copy strong{font-size:15px;font-weight:900;letter-spacing:-.01em}
+  .brand-copy span{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+  .nav-btn{height:38px;padding:0 15px;border-radius:99px;font-size:13px;font-weight:800;background:var(--surface);color:var(--ink);border:1px solid var(--border-strong);display:inline-flex;align-items:center;gap:6px;transition:transform .15s,border-color .15s}
+  .nav-btn:hover{transform:translateY(-2px);border-color:var(--ink-soft)}
+  .nav-btn.dark{background:var(--surface-dark);color:#fff;border-color:var(--surface-dark)}
+
+  .mode-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .mode-pills{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:4px}
+  .mode-pill{padding:9px 20px;border-radius:99px;font-size:13.5px;font-weight:800;color:var(--muted);transition:background .15s,color .15s}
+  .mode-pill.active{background:var(--surface-dark);color:#fff}
+  .mode-pill:hover:not(.active){color:var(--ink)}
+  .mode-meta{color:var(--muted);font-size:13px;font-weight:800}
+  .mode-meta strong{color:var(--ink)}
+
+  /* 상황 배너 */
+  .situation{background:var(--surface-dark);color:#fff;border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);
+    display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+  .sit-ic{font-size:30px}
+  .sit-body small{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-dark);margin-bottom:3px}
+  .sit-body h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.35}
+  .goal-chip{padding:8px 14px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12.5px;font-weight:800;white-space:nowrap}
+  .time-track{grid-column:1/-1;height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.16);margin-top:2px;display:none}
+  .time-track.visible{display:block}
+  .time-track.danger{animation:tshake .18s infinite alternate}
+  @keyframes tshake{from{transform:translateX(-1px)}to{transform:translateX(1px)}}
+  .time-fill{height:100%;width:100%;background:linear-gradient(90deg,#fff,#86efac);transition:width .2s linear,background .2s}
+  @media(max-width:520px){.situation{grid-template-columns:auto 1fr}.goal-chip{grid-column:2;justify-self:start;margin-top:2px}}
+
+  /* 하늘/구름 */
+  .canvas{position:relative;margin-top:14px;border-radius:var(--radius-lg);overflow:hidden;aspect-ratio:16/9;max-height:40vh;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -16px 26px rgba(0,0,0,.10),var(--shadow);border:1px solid rgba(0,0,0,.06);
+    transition:background 1s cubic-bezier(.22,1,.36,1)}
+  @media(max-width:520px){.canvas{aspect-ratio:4/3;max-height:none}}
+  .c-sun{position:absolute;border-radius:50%;transform:translate(-50%,-50%);z-index:2;transition:opacity .7s}
+  .c-stars{position:absolute;inset:0;z-index:1;pointer-events:none;transition:opacity .7s}
+  .c-star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:twinkle 3s ease-in-out infinite}
+  @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:.95}}
+  .c-cloud{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);z-index:3;filter:drop-shadow(0 8px 12px rgba(0,0,0,.18))}
+  .c-cloud svg ellipse.body{transition:fill 1s cubic-bezier(.22,1,.36,1)}
+  .c-cloud.pop{animation:cloudPop .55s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes cloudPop{0%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(1.07) rotate(-1.4deg)}70%{transform:translate(-50%,-50%) scale(.97)}100%{transform:translate(-50%,-50%) scale(1)}}
+  .c-cloud.shake{animation:cloudShake .34s ease}
+  @keyframes cloudShake{0%,100%{transform:translate(-50%,-50%)}25%{transform:translate(-56%,-50%)}75%{transform:translate(-44%,-50%)}}
+
+  /* 피드백 줄 */
+  .feedback{margin-top:12px;display:flex;align-items:center;gap:10px}
+  .msg{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 15px;font-size:13.5px;font-weight:600;line-height:1.5;box-shadow:var(--shadow-sm);min-height:44px;display:flex;align-items:center}
+  .msg.success{background:#f0fdf4;border-color:#bbf7d0;color:#14532d}
+  .msg.error{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
+  .hint-btn{flex:none;height:44px;padding:0 15px;border-radius:99px;background:var(--surface);border:1px solid var(--border-strong);font-size:13px;font-weight:800;color:var(--ink-soft);box-shadow:var(--shadow-sm);transition:transform .15s}
+  .hint-btn:hover{transform:translateY(-2px)}
+
+  /* 하단 팔레트 */
+  .palette-wrap{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm)}
+  .palette-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .palette-head .t{font-size:11px;font-weight:900;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .palette-head{gap:10px}
+  .palette-head .picked{font-size:12px;font-weight:800;color:var(--ink-soft);white-space:nowrap;flex:none}
+  @media(max-width:520px){.palette-head .t{font-size:10px;letter-spacing:.06em}}
+  .palette{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  @media(max-width:640px){.palette{grid-template-columns:repeat(3,1fr)}}
+  .swatch{position:relative;border-radius:16px;padding:0;overflow:hidden;aspect-ratio:1/1.15;border:2px solid transparent;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -14px 20px rgba(0,0,0,.22),0 4px 12px rgba(0,0,0,.12);
+    display:flex;flex-direction:column;justify-content:flex-end;transition:transform .16s cubic-bezier(.22,1,.36,1),box-shadow .16s,border-color .16s}
+  .swatch:hover{transform:translateY(-4px)}
+  .swatch:active{transform:translateY(-1px) scale(.97)}
+  .swatch .lbl{position:relative;z-index:2;padding:7px 8px;text-align:center;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.28))}
+  .swatch .lbl b{display:block;font-size:12px;font-weight:900;letter-spacing:-.01em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .swatch .lbl span{display:block;font-size:9.5px;font-weight:800;color:rgba(255,255,255,.9);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .swatch.selected{border-color:#fff;transform:translateY(-5px) scale(1.03);
+    box-shadow:0 0 0 3px var(--surface-dark),inset 0 2px 0 rgba(255,255,255,.45),inset 0 -14px 20px rgba(0,0,0,.22),0 12px 26px rgba(0,0,0,.2)}
+  .swatch.selected::after{content:"✓";position:absolute;top:6px;right:7px;z-index:3;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--surface-dark);font-size:12px;font-weight:900;display:grid;place-items:center;box-shadow:var(--shadow-sm)}
+  .swatch.hintGlow{border-color:#ffd54a;box-shadow:0 0 0 3px rgba(255,213,74,.6),inset 0 2px 0 rgba(255,255,255,.4),inset 0 -14px 20px rgba(0,0,0,.22),0 4px 12px rgba(0,0,0,.12)}
+
+  .action-row{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:10px}
+  .submit-btn{min-height:52px;border-radius:14px;background:var(--surface-dark);color:#fff;font-weight:900;font-size:15.5px;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(15,23,42,.2);transition:transform .16s,background .16s}
+  .submit-btn:hover{background:#000;transform:translateY(-2px)}
+  .reset-btn{min-height:52px;padding:0 20px;border-radius:14px;background:var(--surface);border:1px solid var(--border-strong);font-weight:800;font-size:14px;color:var(--ink-soft);transition:transform .16s}
+  .reset-btn:hover{transform:translateY(-2px)}
+
+  /* 모달 */
+  .modal-bd{position:fixed;inset:0;background:rgba(10,10,10,.55);backdrop-filter:blur(4px);display:none;place-items:center;z-index:50;padding:16px}
+  .modal-bd.visible{display:grid}
+  .modal{width:min(420px,100%);border-radius:var(--radius-lg);background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden auto;max-height:92vh;animation:mIn .35s cubic-bezier(.22,1,.36,1)}
+  @keyframes mIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+  .m-sky{width:100%;aspect-ratio:16/8;position:relative;overflow:hidden}
+  .m-sky .msun{position:absolute;border-radius:50%;transform:translate(-50%,-50%)}
+  .m-body{padding:24px;text-align:center}
+  .m-stars{font-size:30px;letter-spacing:4px;line-height:1}
+  .m-tag{display:inline-block;margin-top:12px;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+  .m-tag.success{background:#f0fdf4;color:var(--success)}.m-tag.fail{background:#fef2f2;color:var(--danger)}
+  .m-body h2{margin:10px 0 3px;font-size:23px;font-weight:900;letter-spacing:-.025em}
+  .m-recipe{margin:14px 0;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+  .m-recipe .rc{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;background:var(--surface-soft);border:1px solid var(--border);font-size:12px;font-weight:800}
+  .m-recipe .rarr{color:var(--muted-dark);font-weight:900;font-size:11px}
+  .m-explain{font-size:13px;line-height:1.65;color:var(--ink-soft);background:var(--surface-soft);border:1px solid var(--border);border-radius:14px;padding:13px 15px;text-align:left}
+  .m-explain b{color:var(--ink)}
+  .m-actions{margin-top:18px;display:flex;gap:8px}
+  .m-actions button{flex:1;min-height:48px;border-radius:14px;font-weight:900;font-size:14.5px}
+  .m-actions .primary{background:var(--surface-dark);color:#fff}
+  .m-actions .sec{background:var(--surface-soft);border:1px solid var(--border);color:var(--ink-soft)}
+
+  /* 클리어/도감 */
+  .clear-card{margin-top:16px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:34px 24px;box-shadow:var(--shadow)}
+  .clear-emoji{font-size:52px;animation:floaty 2.4s ease-in-out infinite}
+  @keyframes floaty{50%{transform:translateY(-7px)}}
+  .clear-card h2{margin:14px 0 8px;font-size:25px;letter-spacing:-.03em}
+  .clear-card p{margin:0 auto;max-width:340px;font-size:14px;color:var(--ink-soft);line-height:1.6}
+  .clear-stats{display:flex;justify-content:center;gap:12px;margin:20px 0 6px;flex-wrap:wrap}
+  .clear-stat{background:var(--surface-soft);border:1px solid var(--border);border-radius:16px;padding:12px 20px;min-width:92px}
+  .clear-stat b{display:block;font-size:24px;font-weight:900}
+  .clear-stat span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+  .clear-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+
+  #dexView{display:none}
+  .dex-head{text-align:center;padding:6px 0 14px}
+  .dex-head h2{margin:0 0 6px;font-size:clamp(24px,4.5vw,30px);letter-spacing:-.03em}
+  .dex-head p{margin:0;font-size:13.5px;color:var(--muted)}
+  .dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:8px}
+  .dex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-sm);text-align:center}
+  .dex-sky{width:100%;aspect-ratio:16/10;border-radius:12px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -10px 14px rgba(0,0,0,.12);margin-bottom:10px;display:grid;place-items:center}
+  .dex-card.locked .dex-sky{background:var(--surface-soft)!important;box-shadow:inset 0 0 0 1px var(--border)}
+  .dex-lock{font-size:24px;opacity:.4}
+  .dex-stars{position:absolute;bottom:5px;left:0;right:0;font-size:11px;color:#ffd54a;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .dex-card b{display:block;font-size:13px;font-weight:800}
+  .dex-card.locked b{color:var(--muted-dark)}
+  .dex-card .dn{display:block;margin-top:3px;font-size:10.5px;color:var(--muted);font-weight:700;min-height:13px}
+
+  .loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:100;transition:opacity .5s,visibility .5s}
+  .loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .l-sky{width:86px;height:86px;border-radius:24px;position:relative;overflow:hidden;box-shadow:var(--shadow-lg);animation:pc 3.2s ease-in-out infinite,floaty 2.4s ease-in-out infinite}
+  @keyframes pc{0%{background:linear-gradient(180deg,#8fc4f0,#2f7fd6)}33%{background:linear-gradient(180deg,#ffd27a,#e0663a)}66%{background:linear-gradient(180deg,#3a4a7a,#0d1b4a)}100%{background:linear-gradient(180deg,#8fc4f0,#2f7fd6)}}
+  .l-cloud{position:absolute;left:17px;bottom:18px;width:48px;height:17px;background:#fff;border-radius:20px;box-shadow:12px -8px 0 -2px #fff,-5px -5px 0 -3px #fff}
+  .l-label{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+  /* ── v2: 사운드 토글 · 물감 방울 · 구름 표정 · 별 · 축하 ── */
+  .nav-btn.icon{width:38px;padding:0;justify-content:center;margin-right:6px}
+  .nav-btn.muted{opacity:.5}
+  .c-splash{position:absolute;width:44px;height:44px;border-radius:50%;transform:translate(-50%,-50%) scale(.2);z-index:1;pointer-events:none;animation:splash 1.05s cubic-bezier(.22,1,.36,1) forwards}
+  @keyframes splash{0%{opacity:.95}100%{transform:translate(-50%,-50%) scale(13);opacity:0}}
+  .drop{position:fixed;z-index:70;width:22px;height:22px;border-radius:50% 50% 50% 0;pointer-events:none;box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 4px 10px rgba(0,0,0,.22)}
+  .c-cloud svg{animation:breathe 4s ease-in-out infinite;transform-origin:50% 70%}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025,1.015)}}
+  .c-cloud .eye{transform-box:fill-box;transform-origin:center;transition:transform .2s}
+  .c-cloud.happy{animation:cloudJump .7s cubic-bezier(.34,1.56,.64,1)}
+  .c-cloud.happy .eye{transform:scaleY(.28)}
+  @keyframes cloudJump{0%,100%{transform:translate(-50%,-50%)}35%{transform:translate(-50%,-64%) scale(1.06,.96)}60%{transform:translate(-50%,-47%) scale(.97,1.03)}}
+  .c-cloud.shake .eye{transform:scale(1.25,.6)}
+  .m-stars .st{display:inline-block;animation:starPop .5s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes starPop{from{opacity:0;transform:scale(.2) rotate(-40deg)}to{opacity:1;transform:none}}
+  .msg{transition:background .2s,border-color .2s,color .2s}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+  .cf{position:absolute;top:-12px;border-radius:3px;will-change:transform,opacity}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="l-sky"><div class="l-cloud"></div></div>
+  <div class="l-label">Mixing the sky…</div>
+</div>
+
+<div class="wrap">
+  <header class="site-header">
+    <a class="brand" href="index.html" title="처음 화면으로"><div class="brand-icon">🎨</div><div class="brand-copy"><strong>하늘 팔레트</strong><span>Paint the Sky</span></div></a>
+    <div style="display:flex"><button class="nav-btn icon" id="sfxBtn" title="효과음 켜기/끄기" aria-label="효과음 켜기/끄기">🔊</button><button class="nav-btn" id="dexBtn">🖼️ 도감</button><button class="nav-btn dark" id="homeBtn" style="display:none">← 게임으로</button></div>
+  </header>
+
+  <!-- 게임 -->
+  <div id="gameView">
+    <div class="mode-bar">
+      <div class="mode-pills">
+        <button class="mode-pill active" data-mode="practice">연습</button>
+        <button class="mode-pill" data-mode="normal">일반</button>
+        <button class="mode-pill" data-mode="challenge">챌린지</button>
+      </div>
+      <div class="mode-meta" id="modeMeta">상황을 보고 원인을 고르세요</div>
+    </div>
+
+    <div class="situation" id="situation">
+      <div class="sit-ic" id="sitIc">☀️</div>
+      <div class="sit-body"><small id="modeLabel">연습 모드</small><h2 id="sitTx">상황</h2></div>
+      <div class="goal-chip" id="goalChip">완성 0 / 4</div>
+      <div class="time-track" id="timeTrack"><div class="time-fill" id="timeFill"></div></div>
+    </div>
+
+    <div class="canvas" id="canvas"></div>
+
+    <div class="feedback">
+      <div class="msg" id="msg">아래 팔레트에서 이 상황을 만드는 대기 원인을 골라 조합하세요.</div>
+      <button class="hint-btn" id="hintBtn">💡 힌트</button>
+    </div>
+
+    <div class="palette-wrap">
+      <div class="palette-head"><span class="t">🎨 대기 팔레트 · 원인을 고르면 하늘 색이 섞입니다</span><span class="picked" id="pickedLbl"></span></div>
+      <div class="palette" id="palette"></div>
+      <div class="action-row">
+        <button class="submit-btn" id="submitBtn">이 색으로 조합 →</button>
+        <button class="reset-btn" id="resetBtn">초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 도감 -->
+  <div id="dexView">
+    <div class="dex-head"><h2>하늘 도감</h2><p>맞게 조합한 하늘이 기록됩니다</p></div>
+    <div class="dex-grid" id="dexGrid"></div>
+  </div>
+</div>
+
+<div class="modal-bd" id="modal"><div class="modal" id="modalCard"></div></div>
+<div id="confetti"></div>
+
+<script>
+"use strict";
+const $=s=>document.getElementById(s);
+
+/* ═══════════════ SKY SFX v1 — 두 게임 공용(복사해서 사용) ═══════════════
+   · Web Audio 합성, 외부 파일 없음
+   · 첫 사용자 제스처에서 AudioContext 생성(브라우저 자동재생 정책)
+   · 음소거/볼륨은 localStorage("sky_sfx")에 저장 → 두 게임이 설정 공유
+   ══════════════════════════════════════════════════════════════════ */
+const SkySFX=(()=>{
+  const KEY="sky_sfx";
+  let cfg={muted:false,vol:0.6};
+  try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY))||{});}catch(e){}
+  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){}};
+  let ctx=null,master=null,noiseBuf=null;
+  function ac(){
+    if(!ctx){
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+      ctx=new AC(); master=ctx.createGain(); master.gain.value=cfg.vol;
+      const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-18; comp.ratio.value=4;
+      master.connect(comp); comp.connect(ctx.destination);
+      noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+      const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    }
+    if(ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  /* 기본 음: 오실레이터 + ADSR 비슷한 엔벨로프 */
+  function tone({f=440,f2=null,type="sine",dur=.15,vol=.25,delay=0,attack=.005,detune=0,vib=0}={}){
+    const c=ac(); if(!c||cfg.muted) return;
+    const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); o.detune.value=detune;
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    if(vib){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=vib;lg.gain.value=f*.012;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur+.05);}
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.05);
+  }
+  /* 노이즈: 필터로 바람·먼지·연기 질감 */
+  function noise({dur=.3,vol=.15,type="lowpass",f=1200,f2=null,q=.8,delay=0,attack=.02}={}){
+    const c=ac(); if(!c||cfg.muted) return;
+    const t=c.currentTime+delay, s=c.createBufferSource(), fl=c.createBiquadFilter(), g=c.createGain();
+    s.buffer=noiseBuf; s.loop=true; fl.type=type; fl.Q.value=q; fl.frequency.setValueAtTime(f,t);
+    if(f2) fl.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t+dur+.05);
+  }
+  const N=n=>440*Math.pow(2,(n-69)/12); // MIDI → Hz
+  const PENTA=[72,74,76,79,81,84];      // C D E G A C (원인 6종)
+
+  const lib={
+    /* ── 공통 UI ── */
+    tap:   ()=>tone({f:880,f2:660,dur:.06,vol:.12,type:"triangle"}),
+    hover: ()=>tone({f:1320,dur:.03,vol:.04}),
+    open:  ()=>{noise({dur:.28,vol:.08,type:"bandpass",f:600,f2:2400,q:1.2});tone({f:520,f2:780,dur:.18,vol:.08,delay:.04});},
+    close: ()=>{noise({dur:.22,vol:.07,type:"bandpass",f:2200,f2:500,q:1.2});},
+    page:  ()=>noise({dur:.35,vol:.07,type:"lowpass",f:400,f2:3000,q:.6}),
+    poke:  ()=>{tone({f:300,f2:560,dur:.14,vol:.16,type:"sine"});tone({f:620,f2:420,dur:.12,vol:.06,delay:.09});},
+    tick:  ()=>tone({f:1800,dur:.025,vol:.07,type:"square"}),
+    /* ── 판정·보상 ── */
+    correct:()=>[72,76,79,84].forEach((n,i)=>tone({f:N(n),dur:.28,vol:.16,type:"triangle",delay:i*.07})),
+    wrong: ()=>{tone({f:N(57),f2:N(55),dur:.18,vol:.13,type:"triangle"});tone({f:N(53),f2:N(50),dur:.26,vol:.12,type:"triangle",delay:.12});},
+    combo: (n=2)=>{const b=72+Math.min(n,8)*2;[0,4,7].forEach((k,i)=>tone({f:N(b+k),dur:.14,vol:.12,type:"square",delay:i*.045}));},
+    star:  (i=0)=>{tone({f:N(84+i*4),dur:.35,vol:.12,delay:i*.18});tone({f:N(96+i*4),dur:.25,vol:.05,delay:i*.18+.02});},
+    clear: ()=>{[60,64,67,72,76,79,84].forEach((n,i)=>tone({f:N(n),dur:.4,vol:.13,type:"triangle",delay:i*.075}));
+                [84,88,91].forEach((n,i)=>tone({f:N(n),dur:.9,vol:.07,delay:.55+i*.02,vib:5}));},
+    unlock:()=>{tone({f:N(67),dur:.12,vol:.12,type:"square"});tone({f:N(79),dur:.4,vol:.12,type:"triangle",delay:.1});noise({dur:.4,vol:.05,type:"highpass",f:4000,delay:.1});},
+    timeout:()=>[67,63,60].forEach((n,i)=>tone({f:N(n),dur:.3,vol:.12,type:"triangle",delay:i*.14})),
+    /* ── 원리 이펙트(12현상) ── */
+    rayleigh:()=>{for(let i=0;i<10;i++)tone({f:N(88+[0,2,4,7,9][i%5]+(i>4?12:0)),dur:.22,vol:.05,delay:i*.05+Math.random()*.03});},
+    longpath:()=>{tone({f:N(48),dur:1.2,vol:.1,type:"sawtooth",attack:.4});noise({dur:1.1,vol:.05,type:"lowpass",f:2400,f2:300});},
+    mie:     ()=>{noise({dur:.7,vol:.08,type:"lowpass",f:1800,attack:.1});[76,79,84].forEach((n,i)=>tone({f:N(n),dur:.5,vol:.05,delay:i*.03}));},
+    thick:   ()=>{noise({dur:1.2,vol:.12,type:"lowpass",f:220,attack:.3});tone({f:N(36),dur:1,vol:.1,attack:.3});},
+    dust:    ()=>{noise({dur:1,vol:.07,type:"bandpass",f:3000,q:3,attack:.2});noise({dur:1,vol:.05,type:"lowpass",f:500,attack:.3});},
+    fog:     ()=>noise({dur:1.4,vol:.09,type:"lowpass",f:900,f2:500,attack:.5}),
+    rainbow: ()=>[60,62,64,67,69,72,74].forEach((n,i)=>tone({f:N(n+12),dur:.45,vol:.09,type:"triangle",delay:i*.08})),
+    bluehour:()=>[57,64,69].forEach(n=>tone({f:N(n),dur:1.4,vol:.06,attack:.5,vib:4})),
+    green:   ()=>[0,-14,14].forEach(dt=>tone({f:N(55),dur:1.2,vol:.06,type:"sawtooth",detune:dt,attack:.3,vib:3})),
+    aerosol: ()=>{for(let i=0;i<9;i++)noise({dur:.04,vol:.08,type:"highpass",f:2500,delay:Math.random()*.8,attack:.003});tone({f:N(45),dur:1,vol:.07,attack:.3});},
+    aurora:  ()=>[64,71,76,83].forEach((n,i)=>tone({f:N(n),dur:1.8,vol:.05,attack:.6,delay:i*.12,vib:2.5+i})),
+    halo:    ()=>{tone({f:N(88),dur:1.4,vol:.09});tone({f:N(88)*2.76,dur:.9,vol:.03});tone({f:N(95),dur:1.2,vol:.04,delay:.06});},
+    /* ── 팔레트 붓 ── */
+    brushOn: (i=0)=>{tone({f:N(PENTA[i%6]),dur:.32,vol:.13,type:"triangle"});noise({dur:.12,vol:.04,type:"bandpass",f:2000,q:2});},
+    brushOff:(i=0)=>tone({f:N(PENTA[i%6]),f2:N(PENTA[i%6]-5),dur:.16,vol:.08,type:"sine"}),
+    mix:     ()=>{noise({dur:.5,vol:.07,type:"bandpass",f:400,f2:1600,q:1.5});tone({f:N(67),f2:N(72),dur:.3,vol:.08,delay:.15});}
+  };
+  return {
+    play(name,...a){ if(lib[name]) lib[name](...a); },
+    unlock(){ ac(); },
+    get muted(){return cfg.muted;},
+    setMuted(m){cfg.muted=!!m;persist();},
+    get vol(){return cfg.vol;},
+    setVol(v){cfg.vol=v;if(master)master.gain.value=v;persist();},
+    list:()=>Object.keys(lib)
+  };
+})();
+/* ═══════════════ /SKY SFX v1 ═══════════════ */
+
+/* ── v2 공통: 효과음 토글 · 물감 방울 · 구름 표정 · 축하 ── */
+const reducedMotion=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const FX_OF={clear:"rayleigh",warm:"longpath",whiten:"mie",dim:"thick",dust:"dust",glow:"aurora"};
+function paintSfx(){const b=$("sfxBtn");b.textContent=SkySFX.muted?"🔇":"🔊";b.classList.toggle("muted",SkySFX.muted);}
+function cloudMood(m){const c=$("cCloud");if(!c)return;c.classList.remove("pop","shake","happy");void c.offsetWidth;c.classList.add(m);}
+/* 스와치에서 물감 방울이 날아가 하늘에 번짐 */
+function splash(id,fromEl,done){
+  const cv=$("canvas"),col=CAUSES[id].dot;
+  const land=()=>{const s=document.createElement("div");s.className="c-splash";
+    s.style.cssText+=`;left:${32+Math.random()*36}%;top:${30+Math.random()*34}%;background:radial-gradient(circle,${col} 0%,${col}99 38%,transparent 70%)`;
+    cv.appendChild(s);setTimeout(()=>s.remove(),1100);if(done)done();};
+  if(reducedMotion()||!fromEl||!fromEl.animate){land();return;}
+  const a=fromEl.getBoundingClientRect(),b=cv.getBoundingClientRect();
+  const ax=a.left+a.width/2,ay=a.top+a.height/2,dx=b.left+b.width/2-ax,dy=b.top+b.height*.5-ay;
+  const d=document.createElement("div");d.className="drop";d.style.background=CAUSES[id].rep;d.style.left=(ax-11)+"px";d.style.top=(ay-11)+"px";
+  document.body.appendChild(d);
+  d.animate([{transform:"translate(0,0) rotate(-45deg) scale(1)"},
+    {transform:`translate(${dx*.5}px,${dy*.5-70}px) rotate(-45deg) scale(1.15)`,offset:.5},
+    {transform:`translate(${dx}px,${dy}px) rotate(-45deg) scale(.6)`}],{duration:520,easing:"cubic-bezier(.4,0,.6,1)"}).onfinish=finish;
+  // 애니메이션이 멈춘 환경(숨은 탭 등)에서도 색 반영이 빠지지 않도록 타이머로 보장
+  let landed=false;function finish(){if(landed)return;landed=true;d.remove();land();}
+  setTimeout(finish,650);
+}
+function confetti(n=60){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const L=document.getElementById("confetti"), cols=["#2f7fd6","#8fc4f0","#ffd27a","#e0663a","#ffffff","#8affc0","#c7a6ff"];
+  for(let i=0;i<n;i++){
+    const d=document.createElement("i"), w=6+Math.random()*6; d.className="cf";
+    d.style.cssText=`left:${Math.random()*100}%;width:${w}px;height:${w*(.5+Math.random())}px;background:${cols[i%cols.length]};box-shadow:0 0 0 1px rgba(0,0,0,.05)`;
+    L.appendChild(d);
+    d.animate([{transform:"translate(0,0) rotate(0deg)",opacity:1},
+      {transform:`translate(${(Math.random()-.5)*160}px,${innerHeight+40}px) rotate(${(Math.random()-.5)*900}deg)`,opacity:.85}],
+      {duration:1600+Math.random()*1400,delay:Math.random()*400,easing:"cubic-bezier(.2,.6,.4,1)"}).onfinish=()=>d.remove();
+  }
+}
+
+/* ── 색 모델(고른 원인들을 섞어 하늘색 미리보기) ── */
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const clamp01=c=>c.map(v=>Math.max(0,Math.min(1,v)));
+const css=c=>{const[r,g,b]=clamp01(c).map(v=>Math.round(v*255));return`rgb(${r},${g},${b})`;};
+
+/* 원인(팔레트 색). rep=팔레트에 보이는 대표색 그라데이션, op=하늘색 변형 */
+const CAUSES={
+  clear:{name:"맑은 공기",sci:"레일리",dot:"#2f7fd6",rep:"linear-gradient(160deg,#bfe3ff,#2f7fd6)",op:c=>mix(c,[0.42,0.66,1.0],0.55)},
+  warm:{name:"긴 통과거리",sci:"노을",dot:"#e0663a",rep:"linear-gradient(160deg,#ffd27a,#e0663a)",op:c=>[c[0]*1.0,c[1]*0.60,c[2]*0.26]},
+  whiten:{name:"물방울",sci:"미 산란",dot:"#ffffff",rep:"linear-gradient(160deg,#ffffff,#c3ccd3)",op:c=>{const a=(c[0]+c[1]+c[2])/3;return mix(mix(c,[a,a,a],0.4),[1,1,1],0.25);}},
+  dim:{name:"약해진 햇빛",sci:"빛 감쇠",dot:"#2b2f34",rep:"linear-gradient(160deg,#8a929c,#2b2f34)",op:c=>c.map(v=>v*0.5)},
+  dust:{name:"먼지·연기",sci:"에어로졸",dot:"#b07a32",rep:"linear-gradient(160deg,#d9b45a,#7a4a1e)",op:c=>{let d=[c[0]*0.92,c[1]*0.60,c[2]*0.30];d=mix(d,[0.62,0.46,0.30],0.35);return d.map(v=>v*0.92);}},
+  glow:{name:"대기 발광",sci:"오로라",dot:"#22d07a",rep:"linear-gradient(160deg,#8affc0,#22a86a)",op:c=>clamp01([c[0]+0.14,c[1]+0.72,c[2]+0.34])}
+};
+const ORDER=["clear","warm","whiten","dim","dust","glow"];
+const BASE={day:[1,1,1],skylit:[0.72,0.85,1.0],night:[0.035,0.045,0.085]};
+/* 선택된 원인들을 고정 순서로 적용해 하늘색 계산 */
+function mixSky(base,set){return ORDER.filter(id=>set.has(id)).reduce((c,id)=>clamp01(CAUSES[id].op(c)),BASE[base].slice());}
+const setEq=(set,arr)=>set.size===arr.length&&arr.every(x=>set.has(x));
+
+/* ── 퍼즐: 각 하늘 = 정답 원인들의 '집합'(순서·중복 없음) ── */
+const PUZZLES=[
+  // 연습 (한 원인)
+  {id:"blue",mode:"practice",base:"day",recipe:["clear"],sun:true,ic:"☀️",sit:"정오 · 공기 맑음 · 태양이 높다",name:"한낮의 파란 하늘",
+   ex:"<b>맑은 공기</b>의 레일리 산란이 짧은 파란빛을 강하게 흩뿌려 하늘 전체가 파랗게 물듭니다."},
+  {id:"sunset",mode:"practice",base:"day",recipe:["warm"],sun:true,sunLow:true,ic:"🌇",sit:"일몰 직전 · 태양이 지평선에 걸림",name:"붉은 노을",
+   ex:"태양이 낮아 빛이 대기를 <b>긴 거리</b> 통과하면 파란빛은 대부분 흩어져 사라지고 붉은빛만 남습니다."},
+  {id:"dark",mode:"practice",base:"day",recipe:["dim"],sun:false,ic:"🌧️",sit:"소나기 직전 · 구름층이 매우 두껍다",name:"먹구름",
+   ex:"두꺼운 구름이 햇빛을 막아 <b>빛이 약해지면</b>, 색은 중립인데 밝기만 뚝 떨어져 회색이 됩니다."},
+  {id:"white",mode:"practice",base:"skylit",recipe:["whiten"],sun:true,ic:"⛅",sit:"한낮 · 두툼한 물방울 구름",name:"하얀 뭉게구름",
+   ex:"구름 <b>물방울</b>은 빛의 파장보다 훨씬 커서 모든 색을 고르게 산란(미 산란)시키고, 합쳐지면 흰색이 됩니다."},
+
+  // 일반 (한 원인 + 두 원인 조합)
+  {id:"dust",mode:"normal",base:"day",recipe:["dust"],sun:true,ic:"😷",sit:"미세먼지 가득한 한낮 · 가시거리 짧음",name:"누런 황사 하늘",
+   ex:"<b>먼지 입자</b>가 빛을 뿌옇게 흩고, 먼지 속 산화철 광물이 파란빛을 흡수해 하늘이 누렇게 보입니다."},
+  {id:"bluehour",mode:"normal",base:"day",recipe:["clear","dim"],sun:false,ic:"🌆",sit:"해가 막 넘어간 직후 · 직사광 없음",name:"블루 아워",
+   ex:"<b>직사광이 사라져(감쇠)</b> 하늘이 어둑해지고, 높은 대기를 길게 지나온 빛에서 오존이 붉은빛을 흡수해 <b>맑은 공기</b>의 파랑만 깊게 남습니다."},
+  {id:"blood",mode:"normal",base:"day",recipe:["warm","dust"],sun:true,sunLow:true,ic:"🌅",sit:"노을 무렵 + 옅은 연무가 겹침",name:"핏빛 노을",
+   ex:"노을의 <b>긴 통과거리</b>에 <b>연무 입자</b>가 더해져 파랑을 한 번 더 지우면 짙은 핏빛이 됩니다."},
+  {id:"fog",mode:"normal",base:"skylit",recipe:["whiten","dim"],sun:false,ic:"🌁",sit:"이른 아침 · 습도 100% 포화",name:"새벽 안개",
+   ex:"<b>작은 물방울</b>이 빛을 하얗게 흩되 <b>햇빛이 약해</b> 밝지도 어둡지도 않은 뿌연 회백색이 됩니다."},
+
+  // 챌린지 (두 원인 조합 + 밤)
+  {id:"aurora",mode:"challenge",base:"night",recipe:["glow"],sun:false,stars:true,ic:"🌌",sit:"극지방 겨울밤 · 상공 100km",name:"오로라",
+   ex:"태양풍 입자가 대기의 산소·질소를 자극해 기체가 스스로 빛을 냅니다(<b>발광</b>). 산란이 아니에요."},
+  {id:"pinkdawn",mode:"challenge",base:"day",recipe:["warm","whiten"],sun:true,sunLow:true,ic:"🌄",sit:"동틀 무렵 · 옅은 구름이 깔림",name:"분홍빛 새벽놀",
+   ex:"<b>긴 통과거리</b>의 붉은빛이 <b>구름 물방울</b>에 고르게 반사되면 붉음이 옅어져 부드러운 분홍이 됩니다."},
+  {id:"humid",mode:"challenge",base:"day",recipe:["clear","whiten"],sun:true,ic:"🥵",sit:"무더운 여름 오후 · 습도 높음",name:"뿌연 여름 하늘",
+   ex:"<b>맑은 공기</b>의 파랑에, 습기를 머금고 부푼 <b>미세 물방울(연무)</b>의 고른 산란이 더해져 쨍하지 않고 희뿌연 파랑이 됩니다."},
+  {id:"smog",mode:"challenge",base:"day",recipe:["dust","dim"],sun:false,ic:"🏙️",sit:"도시 · 바람 없는 흐린 날 · 매연 정체",name:"스모그 낀 도시",
+   ex:"<b>매연 입자</b>가 빛을 탁하게 거르고 <b>두꺼운 오염층</b>이 밝기를 낮춰 뿌옇고 어둑한 갈빛이 됩니다."}
+];
+PUZZLES.forEach(p=>p.target=mixSky(p.base,new Set(p.recipe)));
+const puzzlesOf=m=>PUZZLES.filter(p=>p.mode===m);
+const MODE_KR={practice:"연습",normal:"일반",challenge:"챌린지"};
+const CH_TIME=45;
+
+/* ── 저장 ── */
+const KEY="skypaint_v3";
+let store=(()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.stars)return s;}catch(e){}return{stars:{}};})();
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
+const starsOf=id=>store.stars[id]||0;
+const foundCount=()=>Object.keys(store.stars).length;
+
+let S={};
+
+function start(mode){
+  clearInterval(S.timer);
+  S={mode,list:puzzlesOf(mode),idx:0,sel:new Set(),wrong:0,active:true,timer:null,time:CH_TIME,done:0,runStars:0};
+  document.querySelectorAll(".mode-pill").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+  $("modeLabel").textContent=MODE_KR[mode]+" 모드";
+  renderPalette();
+  renderPuzzle();
+}
+function renderPalette(){
+  $("palette").innerHTML=ORDER.map(id=>{const c=CAUSES[id];
+    return `<button class="swatch" data-id="${id}" style="background:${c.rep}" aria-pressed="false">
+      <span class="lbl"><b>${c.name}</b><span>${c.sci}</span></span></button>`;}).join("");
+  $("palette").querySelectorAll(".swatch").forEach(el=>el.addEventListener("click",()=>toggle(el.dataset.id)));
+}
+function renderPuzzle(){
+  const p=S.list[S.idx];
+  S.sel=new Set();S.wrong=0;S.submitted=false;S.lastTick=null;
+  clearInterval(S.timer);
+  $("sitIc").textContent=p.ic;$("sitTx").textContent=p.sit;
+  $("goalChip").textContent="완성 "+S.done+" / "+S.list.length;
+  $("modeMeta").innerHTML=`${MODE_KR[S.mode]} · <strong>${S.idx+1} / ${S.list.length}</strong>`;
+  setMsg("아래 팔레트에서 이 상황을 만드는 대기 원인을 골라 조합하세요.","");
+  buildCanvas(p);
+  document.querySelectorAll(".swatch").forEach(el=>{el.classList.remove("selected","hintGlow");el.setAttribute("aria-pressed","false");});
+  updatePicked();
+  refresh(true);
+  const track=$("timeTrack"),fill=$("timeFill");
+  if(S.mode==="challenge"){
+    track.classList.add("visible");S.time=CH_TIME;fill.style.width="100%";fill.style.background="linear-gradient(90deg,#fff,#86efac)";
+    S.timer=setInterval(()=>{S.time-=.1;const pct=Math.max(0,S.time/CH_TIME*100);
+      fill.style.width=pct+"%";fill.style.background=pct<25?"#f87171":pct<50?"#fbbf24":"linear-gradient(90deg,#fff,#86efac)";
+      track.classList.toggle("danger",pct<18);
+      const sec=Math.ceil(S.time);if(sec<=10&&sec>0&&sec!==S.lastTick){S.lastTick=sec;SkySFX.play("tick");}
+      if(S.time<=0){clearInterval(S.timer);judge(true);}},100);
+  }else track.classList.remove("visible","danger");
+}
+function curColor(){return mixSky(S.list[S.idx].base,S.sel);}
+
+function buildCanvas(p){
+  const cv=$("canvas");let h="";
+  if(p.stars){h+=`<div class="c-stars" id="cStars">`;for(let i=0;i<18;i++)h+=`<span class="c-star" style="left:${i*53%100}%;top:${i*37%55}%;animation-delay:${(i%5)*.6}s"></span>`;h+=`</div>`;}
+  h+=`<div class="c-sun" id="cSun"></div>`;
+  h+=`<div class="c-cloud" id="cCloud"><svg width="168" height="110" viewBox="0 0 120 80">
+      <ellipse class="body" cx="42" cy="52" rx="34" ry="24"/><ellipse class="body" cx="74" cy="48" rx="30" ry="26"/>
+      <ellipse class="body" cx="60" cy="60" rx="46" ry="18"/><ellipse class="body" cx="60" cy="42" rx="24" ry="20"/>
+      <ellipse class="eye" cx="50" cy="50" rx="3.4" ry="5" fill="#0a0a0a"/><ellipse class="eye" cx="70" cy="50" rx="3.4" ry="5" fill="#0a0a0a"/>
+      <circle cx="43" cy="58" r="4.2" fill="#ff8a8a" opacity=".45"/><circle cx="77" cy="58" r="4.2" fill="#ff8a8a" opacity=".45"/>
+      <path d="M55 60 Q60 64 65 60" stroke="#0a0a0a" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/></svg></div>`;
+  cv.innerHTML=h;
+}
+function toggle(id){
+  if(!S.active||S.submitted)return;
+  const el=$("palette").querySelector('.swatch[data-id="'+id+'"]');
+  const i=ORDER.indexOf(id);
+  if(S.sel.has(id)){S.sel.delete(id);el.classList.remove("selected");el.setAttribute("aria-pressed","false");SkySFX.play("brushOff",i);updatePicked();refresh(false);}
+  else{S.sel.add(id);el.classList.add("selected");el.setAttribute("aria-pressed","true");SkySFX.play("brushOn",i);updatePicked();
+    const pz=S.idx;splash(id,el,()=>{if(S.idx===pz&&!S.submitted)refresh(false);});}
+}
+function updatePicked(){
+  $("pickedLbl").textContent=S.sel.size?"고른 원인 "+S.sel.size+"개":"";
+}
+function refresh(rebuild){
+  const p=S.list[S.idx],c=curColor(),cv=$("canvas");
+  cv.style.background=`linear-gradient(180deg,${css(mix(c,[1,1,1],.28))},${css(c)} 55%,${css(mix(c,[0,0,0],.16))})`;
+  const sun=$("cSun");
+  if(p.sun){const x=p.sunLow?50:78,y=p.sunLow?70:20,rr=p.sunLow?30:24;
+    sun.style.cssText=`opacity:1;left:${x}%;top:${y}%;width:${rr*2}px;height:${rr*2}px;background:radial-gradient(circle at 40% 40%,#fff,${css(mix(c,[1,.95,.8],.35))});box-shadow:0 0 ${rr}px ${rr*.6}px ${css(mix(c,[1,.9,.7],.4))}88`;
+  }else if(sun)sun.style.opacity="0";
+  if($("cStars"))$("cStars").style.opacity=p.stars?"1":"0";
+  const cloudC=p.stars?mix(c,[1,1,1],.5):mix(c,[1,1,1],.38);
+  const cl=$("cCloud");
+  cl.querySelectorAll("ellipse.body").forEach((e,i)=>e.style.fill=css(i===3?mix(cloudC,[1,1,1],.12):cloudC));
+  if(!rebuild){cl.classList.remove("pop");void cl.offsetWidth;cl.classList.add("pop");}
+}
+function setMsg(t,tone){const m=$("msg");m.innerHTML=t;m.classList.remove("success","error");if(tone)m.classList.add(tone);}
+
+function hint(){
+  const p=S.list[S.idx];
+  if(S.mode==="practice"){
+    setMsg("💡 필요한 원인: <b>"+p.recipe.map(r=>CAUSES[r].name).join(" + ")+"</b>","");
+    p.recipe.forEach(r=>{const el=$("palette").querySelector('.swatch[data-id="'+r+'"]');if(el){el.classList.add("hintGlow");setTimeout(()=>el.classList.remove("hintGlow"),1600);}});
+  }else if(S.mode==="normal") setMsg("💡 이 하늘은 원인 <b>"+p.recipe.length+"개</b>로 만들어져요.","");
+  else setMsg("💡 챌린지에선 힌트가 거의 없어요. 상황을 잘 읽으세요!","");
+}
+function resetSel(){if(S.sel.size){S.sel=new Set();document.querySelectorAll(".swatch").forEach(el=>{el.classList.remove("selected");el.setAttribute("aria-pressed","false");});updatePicked();refresh(false);setMsg("선택을 지웠어요.","");}}
+
+function judge(timeout){
+  if(S.submitted)return;
+  const p=S.list[S.idx];
+  if(!timeout&&!S.sel.size){SkySFX.play("wrong");setMsg("먼저 팔레트에서 원인을 골라보세요.","error");return;}
+  const ok=setEq(S.sel,p.recipe);
+  if(!ok){
+    S.wrong++;
+    cloudMood("shake");
+    if(timeout){S.submitted=true;clearInterval(S.timer);SkySFX.play("timeout");setTimeout(()=>showResult(p,false,true),500);return;}
+    SkySFX.play("wrong");
+    const hit=[...S.sel].filter(x=>p.recipe.includes(x)).length,need=p.recipe.length;
+    let tip="힌트를 보고 다시!";
+    if(S.mode==="practice") tip=`고른 것 중 <b>${hit}개</b>가 맞아요 · 필요한 원인은 <b>${need}개</b>.`;
+    else if(S.mode==="normal") tip=S.sel.size!==need?`필요한 원인 수가 달라요. 상황을 다시 읽어보세요.`:`개수는 맞는데 종류가 달라요.`;
+    setMsg("× 이 조합으론 그 하늘이 안 나와요. "+tip,"error");
+    return;
+  }
+  S.submitted=true;clearInterval(S.timer);
+  let stars=S.wrong===0?3:S.wrong===1?2:1;
+  if(stars>starsOf(p.id))store.stars[p.id]=stars;persist();
+  S.done++;S.runStars=S.list.reduce((s,q)=>s+starsOf(q.id),0);
+  $("goalChip").textContent="완성 "+S.done+" / "+S.list.length;
+  refresh(true);cloudMood("happy");SkySFX.play("mix");setTimeout(()=>SkySFX.play("correct"),260);
+  setMsg("✓ 하늘이 완성됐어요!","success");
+  setTimeout(()=>showResult(p,true,false,stars),reducedMotion()?0:750);
+}
+function showResult(p,ok,timeout,stars){
+  const last=S.idx===S.list.length-1;
+  const c=ok?p.target:curColor();
+  let sunHtml="";
+  if(p.sun){const rr=p.sunLow?20:16,x=p.sunLow?50:76,y=p.sunLow?72:24;sunHtml=`<div class="msun" style="left:${x}%;top:${y}%;width:${rr*2}px;height:${rr*2}px;background:radial-gradient(circle,#fff,${css(mix(c,[1,.95,.8],.35))});box-shadow:0 0 ${rr}px ${rr*.6}px ${css(mix(c,[1,.9,.7],.4))}88"></div>`;}
+  $("modalCard").innerHTML=`
+    <div class="m-sky" style="background:linear-gradient(180deg,${css(mix(c,[1,1,1],.28))},${css(c)} 55%,${css(mix(c,[0,0,0],.16))})">${sunHtml}</div>
+    <div class="m-body">
+      ${ok?`<div class="m-stars">${Array.from({length:3},(_,i)=>i<stars?`<span class="st" style="animation-delay:${.15+i*.18}s">⭐</span>`:`<span class="st" style="opacity:.25;animation-delay:${.15+i*.18}s">☆</span>`).join("")}</div>`:`<div class="m-stars"><span style="opacity:.3">☆☆☆</span></div>`}
+      <div class="m-tag ${ok?'success':'fail'}">${ok?(stars===3?"완벽해요!":stars===2?"좋아요!":"성공"):(timeout?"시간 초과":"아쉬워요")}</div>
+      <h2>${p.name}</h2>
+      <div class="m-recipe">${p.recipe.map((r,i)=>`${i?'<span class="rarr">+</span>':''}<span class="rc" style="background:${CAUSES[r].rep};color:#fff;border:0;text-shadow:0 1px 2px rgba(0,0,0,.4)">${CAUSES[r].name}</span>`).join("")}</div>
+      <div class="m-explain"><b>정답 조합</b> · ${p.ex}</div>
+      <div class="m-actions">
+        ${ok?`<button class="primary" id="mNext">${last?'결과 보기 →':'다음 하늘 →'}</button>`:`<button class="primary" id="mRetry">다시 조합</button>`}
+        <button class="sec" id="mQuit">그만두기</button>
+      </div>
+    </div>`;
+  $("modal").classList.add("visible");SkySFX.play("open");
+  if(ok){for(let i=0;i<stars;i++)setTimeout(()=>SkySFX.play("star",i),150+i*180);
+    p.recipe.forEach((r,i)=>setTimeout(()=>SkySFX.play(FX_OF[r]),300+stars*180+i*550));}
+  const nx=$("mNext");if(nx)nx.onclick=()=>{SkySFX.play("tap");closeModal();nextPuzzle();};
+  const rt=$("mRetry");if(rt)rt.onclick=()=>{SkySFX.play("tap");closeModal();S.submitted=false;renderPuzzle();};
+  $("mQuit").onclick=()=>{SkySFX.play("tap");closeModal();start(S.mode);};
+}
+function closeModal(){$("modal").classList.remove("visible");}
+function nextPuzzle(){S.submitted=false;if(S.idx<S.list.length-1){S.idx++;renderPuzzle();}else renderClear();}
+function renderClear(){
+  clearInterval(S.timer);$("timeTrack").classList.remove("visible");
+  const tot=S.list.reduce((s,p)=>s+starsOf(p.id),0);
+  $("modalCard").innerHTML=`<div class="m-body" style="padding-top:32px">
+    <div class="clear-emoji" style="font-size:50px">${S.done===S.list.length?'🎨':'🖌️'}</div>
+    <h2 style="margin-top:12px">${MODE_KR[S.mode]} 완주!</h2>
+    <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin:8px auto 0;max-width:320px">${S.list.length}개의 하늘을 조합했어요. ${tot===S.list.length*3?'전부 별 3개 — 대기 관측가 인정!':'별을 더 노려 다시 도전해보세요.'}</p>
+    <div class="clear-stats">
+      <div class="clear-stat"><b>${S.done}/${S.list.length}</b><span>완성</span></div>
+      <div class="clear-stat"><b>⭐${tot}</b><span>/ ${S.list.length*3}</span></div>
+      <div class="clear-stat"><b>${foundCount()}/12</b><span>도감</span></div>
+    </div>
+    <div class="m-actions">
+      <button class="primary" id="mAgain">↻ 다시 도전</button>
+      <button class="sec" id="mDex">🖼️ 도감</button>
+    </div></div>`;
+  $("modal").classList.add("visible");
+  SkySFX.play("clear");setTimeout(()=>confetti(tot===S.list.length*3?110:60),150);
+  $("mAgain").onclick=()=>{SkySFX.play("tap");closeModal();start(S.mode);};
+  $("mDex").onclick=()=>{SkySFX.play("page");closeModal();openDex();};
+}
+
+/* 도감 */
+function renderDex(){
+  $("dexGrid").innerHTML=PUZZLES.map(p=>{const st=starsOf(p.id);
+    if(st>0)return `<div class="dex-card"><div class="dex-sky" style="background:linear-gradient(180deg,${css(mix(p.target,[1,1,1],.25))},${css(p.target)} 60%,${css(mix(p.target,[0,0,0],.15))})"><span class="dex-stars">${"⭐".repeat(st)}</span></div><b>${p.name}</b><span class="dn">${p.recipe.map(r=>CAUSES[r].name).join(" + ")}</span></div>`;
+    return `<div class="dex-card locked"><div class="dex-sky"><span class="dex-lock">🔒</span></div><b>? ? ?</b><span class="dn">미완성</span></div>`;}).join("");
+}
+function openDex(){renderDex();$("gameView").style.display="none";$("dexView").style.display="";$("homeBtn").style.display="";$("dexBtn").style.display="none";window.scrollTo({top:0});}
+function closeDex(){$("dexView").style.display="none";$("gameView").style.display="";$("homeBtn").style.display="none";$("dexBtn").style.display="";}
+
+/* 바인딩 */
+document.querySelectorAll(".mode-pill").forEach(b=>b.onclick=()=>{SkySFX.play("tap");if($("dexView").style.display!=="none")closeDex();start(b.dataset.mode);});
+$("submitBtn").onclick=()=>judge(false);
+$("resetBtn").onclick=()=>{SkySFX.play("tap");resetSel();};
+$("hintBtn").onclick=()=>{SkySFX.play("tap");hint();};
+$("dexBtn").onclick=()=>{SkySFX.play("page");openDex();};
+$("homeBtn").onclick=()=>{SkySFX.play("page");closeDex();};
+$("sfxBtn").onclick=()=>{SkySFX.setMuted(!SkySFX.muted);paintSfx();SkySFX.play("tap");};
+document.addEventListener("pointerdown",()=>SkySFX.unlock(),{once:true});
+paintSfx();
+/* 바깥 클릭·ESC로 닫을 때도 결과 모달의 기본 동작(다음/다시/재도전)을 실행해 진행이 멈추지 않게 함 */
+function dismissModal(){if(!$("modal").classList.contains("visible"))return;const b=$("mNext")||$("mRetry")||$("mAgain");if(b)b.click();else closeModal();}
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal")dismissModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")dismissModal();});
+
+start("practice");
+window.addEventListener("load",()=>setTimeout(()=>$("loader").classList.add("hidden"),700));
+setTimeout(()=>$("loader").classList.add("hidden"),1700);
+</script>
+</body>
+</html>

@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>하늘의 색 · 대기 현상 추론 게임</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{
+    --bg:#fafafa;
+    --surface:#ffffff;
+    --surface-soft:#f4f4f5;
+    --surface-dark:#18181b;
+    --surface-dark-soft:#27272a;
+    --border:#e8e8eb;
+    --border-strong:#d4d4d8;
+    --ink:#0a0a0a;
+    --ink-soft:#3f3f46;
+    --muted:#71717a;
+    --muted-dark:#a1a1aa;
+    --success:#16a34a;
+    --success-soft:#dcfce7;
+    --danger:#dc2626;
+    --danger-soft:#fee2e2;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.05);
+    --shadow:0 6px 20px rgba(0,0,0,.07);
+    --shadow-lg:0 20px 48px rgba(0,0,0,.12);
+    --radius-sm:12px;
+    --radius:18px;
+    --radius-lg:26px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    color:var(--ink);background:var(--bg);
+    font-family:"Pretendard Variable","Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+  .app{max-width:820px;margin:0 auto;padding:0 clamp(14px,4vw,28px) 60px}
+
+  /* ── 상단바 ── */
+  .topbar{position:sticky;top:0;z-index:40;background:rgba(250,250,250,.82);backdrop-filter:saturate(180%) blur(14px);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 2px;margin-bottom:6px}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0;color:inherit;text-decoration:none}
+  .brand-icon{width:38px;height:38px;border-radius:11px;background:linear-gradient(160deg,#3f7fd0,#0d1b4a);color:#fff;display:grid;place-items:center;font-size:19px;box-shadow:0 8px 18px rgba(15,23,42,.18);flex:none}
+  .brand-copy{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+  .brand-copy strong{font-size:14.5px;font-weight:900;letter-spacing:-.02em}
+  .brand-copy span{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  .top-stats{display:flex;align-items:center;gap:8px;flex:none}
+  .stat-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:12.5px;font-weight:800;color:var(--ink-soft);box-shadow:var(--shadow-sm)}
+  .stat-pill b{color:var(--ink)}
+  .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:17px;box-shadow:var(--shadow-sm);transition:transform .15s ease,background .15s ease}
+  .icon-btn:hover{transform:translateY(-1px)}
+  @media(max-width:520px){.top-stats .stat-pill.combo{display:none}}
+
+  /* ── 로딩 ── */
+  #loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .5s ease}
+  #loader.hide{opacity:0;pointer-events:none}
+  .loader-sky{width:96px;height:96px;border-radius:26px;background:linear-gradient(180deg,#2f7fd6,#bfe0f7);position:relative;overflow:hidden;box-shadow:var(--shadow-lg);animation:floaty 2.6s ease-in-out infinite}
+  .loader-sun{position:absolute;left:26px;top:22px;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#fff 30%,#ffe9a8 75%);box-shadow:0 0 20px 6px rgba(255,233,168,.8)}
+  .loader-cloud{position:absolute;left:16px;bottom:20px;width:56px;height:20px;background:#fff;border-radius:20px;box-shadow:14px -10px 0 -2px #fff,-6px -6px 0 -3px #fff}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .loader-bar{width:200px;height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+  .loader-fill{height:100%;width:20%;background:var(--surface-dark);border-radius:inherit;animation:fillLoop 1.7s ease-in-out infinite}
+  @keyframes fillLoop{0%{width:8%}70%{width:100%}100%{width:100%}}
+  .loader-label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+  /* ── 화면 전환 ── */
+  .screen{display:none;animation:screenIn .5s cubic-bezier(.22,1,.36,1) both}
+  .screen.active{display:block}
+  @keyframes screenIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ── 메뉴 히어로 ── */
+  .hero{text-align:center;padding:clamp(20px,5vw,44px) 6px clamp(14px,3vw,26px)}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:11.5px;font-weight:800;color:var(--ink-soft);letter-spacing:.04em;box-shadow:var(--shadow-sm)}
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:99px;background:linear-gradient(160deg,#3f7fd0,#e0663a);box-shadow:0 0 0 3px rgba(63,127,208,.16)}
+  .hero h1{margin:16px 0 10px;font-size:clamp(32px,7vw,54px);line-height:1.03;letter-spacing:-.045em;font-weight:900}
+  .hero h1 em{font-style:normal;background:linear-gradient(120deg,#2f7fd6,#e0663a 60%,#8b46d6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{margin:0 auto;max-width:460px;font-size:15px;line-height:1.7;color:var(--ink-soft)}
+
+  /* ── 레벨 카드 ── */
+  .levels{display:grid;gap:14px;margin-top:8px}
+  .level-card{position:relative;display:flex;align-items:center;gap:16px;text-align:left;width:100%;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);
+    transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s ease}
+  .level-card:not(.locked):hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .level-card:not(.locked):active{transform:translateY(-1px) scale(.995)}
+  .level-card.locked{opacity:.62;cursor:not-allowed}
+  .lv-thumb{width:72px;height:72px;border-radius:16px;flex:none;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -12px 18px rgba(0,0,0,.14)}
+  .lv-thumb .tsun{position:absolute;border-radius:50%}
+  .lv-body{flex:1;min-width:0}
+  .lv-tag{font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .lv-body h3{margin:2px 0 4px;font-size:18px;letter-spacing:-.02em}
+  .lv-body p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+  .lv-meta{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .lv-chip{font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;background:var(--surface-soft);border:1px solid var(--border);color:var(--ink-soft)}
+  .lv-chip.done{background:var(--success-soft);border-color:#bbf7d0;color:#15803d}
+  .lv-lock{position:absolute;top:14px;right:14px;font-size:15px}
+  .lv-arrow{flex:none;color:var(--muted-dark);font-size:20px;font-weight:900}
+  .lv-progress{position:absolute;left:18px;right:18px;bottom:0;height:3px;background:var(--border);border-radius:99px;overflow:hidden;transform:translateY(1px)}
+  .lv-progress i{display:block;height:100%;background:var(--surface-dark);border-radius:inherit;transition:width .5s ease}
+
+  .menu-foot{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:13.5px;font-weight:800;color:var(--ink-soft);box-shadow:var(--shadow-sm);transition:transform .15s ease}
+  .ghost-btn:hover{transform:translateY(-2px)}
+  .title-badge{margin-top:20px;text-align:center;font-size:13px;color:var(--muted);font-weight:700}
+  .title-badge b{color:var(--ink)}
+
+  /* ── 게임 헤더 ── */
+  .game-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0 14px}
+  .back-btn{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:800;color:var(--ink-soft);padding:8px 12px;border-radius:99px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm)}
+  .qdots{display:flex;gap:6px}
+  .qdot{width:9px;height:9px;border-radius:99px;background:var(--border-strong);transition:background .3s,transform .3s}
+  .qdot.cur{background:var(--surface-dark);transform:scale(1.25)}
+  .qdot.ok{background:var(--success)}
+
+  /* ── 하늘 무대 ── */
+  .stage-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.06)}
+  .stage{position:relative;width:100%;aspect-ratio:16/9;max-height:44vh;overflow:hidden;transition:background 1.2s ease}
+  @media(max-width:520px){.stage{aspect-ratio:4/3;max-height:none}}
+  .sun{position:absolute;border-radius:50%;transform:translate(-50%,-50%);transition:all 1s ease;z-index:2}
+  .stars{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.85;animation:twinkle 3s ease-in-out infinite}
+  @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:.95}}
+  .horizon{position:absolute;left:0;right:0;bottom:0;height:22%;z-index:2;
+    border-radius:44% 56% 0 0/100% 100% 0 0;box-shadow:0 -2px 12px rgba(0,0,0,.12)}
+  .fx{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+
+  /* 구름 캐릭터 */
+  .cloud{position:absolute;transform:translate(-50%,-50%);z-index:4;border:0;background:none;padding:0;filter:drop-shadow(0 8px 12px rgba(0,0,0,.18));
+    transition:transform .28s cubic-bezier(.34,1.56,.64,1);will-change:transform}
+  .cloud svg{display:block}
+  .cloud.clickable{cursor:pointer}
+  .cloud.clickable:hover{transform:translate(-50%,-50%) translateY(-4px) scale(1.03)}
+  .cloud.clickable:active{transform:translate(-50%,-50%) scale(.95)}
+  .cloud.poke{animation:cloudPoke .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes cloudPoke{0%{transform:translate(-50%,-50%) scale(.9)}40%{transform:translate(-50%,-50%) scale(1.06) rotate(-1.5deg)}70%{transform:translate(-50%,-50%) scale(.98) rotate(1deg)}100%{transform:translate(-50%,-50%) scale(1)}}
+  .cloud .eye{fill:#0a0a0a}
+  .cloud .blush{fill:#ff8a8a;opacity:.5}
+
+  /* 관찰 힌트 툴팁 */
+  .obs-hint{position:absolute;z-index:8;transform:translate(-50%,0);background:rgba(24,24,27,.92);color:#fff;
+    border-radius:14px;padding:11px 13px;box-shadow:var(--shadow-lg);min-width:170px;max-width:230px;
+    opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+  .obs-hint.show{opacity:1;transform:translate(-50%,-6px)}
+  .obs-hint .oh-title{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dark);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+  .obs-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:2px 0}
+  .obs-row span{color:var(--muted-dark)}
+  .obs-row b{font-weight:800}
+  .stage-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:6;font-size:11.5px;font-weight:800;
+    color:#fff;background:rgba(0,0,0,.32);backdrop-filter:blur(4px);padding:6px 13px;border-radius:99px;pointer-events:none;
+    animation:hintPulse 2.6s ease-in-out infinite;white-space:nowrap}
+  @keyframes hintPulse{0%,100%{opacity:.55;transform:translateX(-50%) translateY(0)}50%{opacity:1;transform:translateX(-50%) translateY(-3px)}}
+  .stage-hint.gone{display:none}
+
+  /* ── 질문 & 선택지 ── */
+  .qcard{margin-top:16px}
+  .q-rarity{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px}
+  .q-rarity.common{background:var(--surface-soft);border:1px solid var(--border);color:var(--muted)}
+  .q-rarity.rare{background:#e0f2fe;border:1px solid #bae6fd;color:#0369a1}
+  .q-rarity.epic{background:#f3e8ff;border:1px solid #e9d5ff;color:#7e22ce}
+  .qcard h2{margin:11px 0 4px;font-size:clamp(19px,3.4vw,24px);letter-spacing:-.02em;line-height:1.3}
+  .qcard .q-sub{margin:0 0 16px;font-size:13px;color:var(--muted);font-weight:700}
+  .choices{display:grid;gap:10px}
+  .choice{position:relative;display:flex;align-items:flex-start;gap:13px;width:100%;text-align:left;
+    background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow-sm);
+    transition:transform .16s cubic-bezier(.22,1,.36,1),border-color .16s,background .16s,box-shadow .16s}
+  .choice:not(:disabled):hover{transform:translateY(-2px);border-color:var(--border-strong);box-shadow:var(--shadow)}
+  .choice:not(:disabled):active{transform:translateY(0) scale(.99)}
+  .choice .mark{flex:none;width:26px;height:26px;border-radius:9px;background:var(--surface-soft);border:1px solid var(--border);
+    display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--muted);margin-top:1px;transition:all .2s}
+  .choice .ctext{font-size:14px;line-height:1.55;font-weight:600;color:var(--ink)}
+  .choice.correct{border-color:var(--success);background:var(--success-soft)}
+  .choice.correct .mark{background:var(--success);border-color:var(--success);color:#fff}
+  .choice.wrong{border-color:var(--danger);background:var(--danger-soft)}
+  .choice.wrong .mark{background:var(--danger);border-color:var(--danger);color:#fff}
+  .choice.shake{animation:choiceShake .34s ease both}
+  @keyframes choiceShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+  .choice:disabled{cursor:default}
+  .choice.dim{opacity:.5}
+  .why{margin:2px 0 0;font-size:12.5px;line-height:1.55;color:var(--danger);font-weight:600;padding:0 2px}
+  .why-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease;overflow:hidden}
+  .why-wrap.open{grid-template-rows:1fr;margin-top:9px}
+  .why-wrap>div{min-height:0}
+
+  /* ── 정답 해설 패널 ── */
+  .explain{margin-top:16px;background:var(--surface-dark);color:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);
+    animation:explainIn .5s cubic-bezier(.22,1,.36,1) both}
+  @keyframes explainIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .explain .ex-tag{font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-dark);display:flex;align-items:center;gap:7px}
+  .explain h3{margin:9px 0 8px;font-size:18px;letter-spacing:-.02em}
+  .explain p{margin:0;font-size:13.5px;line-height:1.72;color:#e4e4e7}
+  .ex-combo{margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);padding:6px 13px;border-radius:99px;font-size:12.5px;font-weight:800}
+  .next-btn{margin-top:14px;width:100%;min-height:52px;border-radius:var(--radius);background:linear-gradient(160deg,#3f7fd0,#0d1b4a);color:#fff;font-weight:900;font-size:15.5px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 10px 24px rgba(15,23,42,.24);transition:transform .16s ease}
+  .next-btn:hover{transform:translateY(-2px)}
+  .next-btn:active{transform:translateY(0) scale(.99)}
+
+  /* ── 콤보 토스트 ── */
+  #comboToast{position:fixed;left:50%;top:78px;transform:translate(-50%,-50%);z-index:60;pointer-events:none;
+    background:linear-gradient(160deg,#e0663a,#b8442a);color:#fff;padding:14px 26px;border-radius:99px;box-shadow:var(--shadow-lg);
+    font-weight:900;font-size:20px;display:none;letter-spacing:-.01em}
+  #comboToast.play{display:block;animation:comboPop 1.1s cubic-bezier(.22,1,.36,1)}
+  @keyframes comboPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) translateY(-40px) scale(1)}}
+
+  /* ── 레벨 클리어 ── */
+  .clear-card{text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:34px 24px;box-shadow:var(--shadow);margin-top:10px}
+  .clear-emoji{font-size:52px;line-height:1;animation:floaty 2.4s ease-in-out infinite}
+  .clear-card h2{margin:16px 0 8px;font-size:26px;letter-spacing:-.03em}
+  .clear-card p{margin:0 auto 4px;max-width:360px;font-size:14px;color:var(--ink-soft);line-height:1.6}
+  .clear-stats{display:flex;justify-content:center;gap:12px;margin:20px 0 6px;flex-wrap:wrap}
+  .clear-stat{background:var(--surface-soft);border:1px solid var(--border);border-radius:16px;padding:12px 20px;min-width:96px}
+  .clear-stat b{display:block;font-size:26px;font-weight:900;letter-spacing:-.02em}
+  .clear-stat span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .clear-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .btn-primary{padding:13px 24px;border-radius:99px;background:linear-gradient(160deg,#3f7fd0,#0d1b4a);color:#fff;font-weight:900;font-size:14.5px;box-shadow:0 10px 24px rgba(15,23,42,.22);transition:transform .15s ease}
+  .btn-primary:hover{transform:translateY(-2px)}
+  .unlock-banner{margin-top:16px;background:var(--success-soft);border:1px solid #bbf7d0;color:#15803d;border-radius:14px;padding:12px;font-size:13px;font-weight:800}
+
+  /* ── 도감 ── */
+  .dex-head{text-align:center;padding:8px 0 18px}
+  .dex-head h2{margin:0 0 6px;font-size:clamp(24px,4.5vw,32px);letter-spacing:-.03em}
+  .dex-head p{margin:0;font-size:13.5px;color:var(--muted)}
+  .dex-progress{margin:14px auto 0;max-width:320px;height:8px;background:var(--border);border-radius:99px;overflow:hidden}
+  .dex-progress i{display:block;height:100%;background:linear-gradient(90deg,#3f7fd0,#e0663a);border-radius:inherit;transition:width .6s ease}
+  .dex-group{margin-top:22px}
+  .dex-group h3{font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+  .dex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-sm);text-align:center;transition:transform .2s cubic-bezier(.22,1,.36,1)}
+  .dex-card.found{cursor:pointer}
+  .dex-card.found:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .dex-sky{width:100%;aspect-ratio:16/10;border-radius:12px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -10px 14px rgba(0,0,0,.12);margin-bottom:10px}
+  .dex-sky .ds-sun{position:absolute;border-radius:50%}
+  .dex-card.locked .dex-sky{background:var(--surface-soft)!important;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--border)}
+  .dex-lock{font-size:26px;opacity:.4}
+  .dex-card b{display:block;font-size:13px;font-weight:800;letter-spacing:-.01em}
+  .dex-card.locked b{color:var(--muted-dark)}
+  .dex-card .dp{display:block;margin-top:3px;font-size:10.5px;color:var(--muted);font-weight:700;min-height:13px}
+  .dex-rarity{position:absolute;top:6px;right:6px;font-size:9px;font-weight:900;padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.85);color:#71717a;letter-spacing:.04em}
+  .dex-rarity.rare{color:#0369a1}.dex-rarity.epic{color:#7e22ce}
+
+  /* ── 모달(도감 상세) ── */
+  #modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(10,10,10,.5);backdrop-filter:blur(4px)}
+  #modal.show{display:flex;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-card{background:var(--surface);border-radius:var(--radius-lg);max-width:420px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow:hidden auto;animation:modalIn .35s cubic-bezier(.22,1,.36,1)}
+  @keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+  .modal-sky{width:100%;aspect-ratio:16/9;position:relative;overflow:hidden}
+  .modal-sky .ms-sun{position:absolute;border-radius:50%}
+  .modal-body{padding:22px}
+  .modal-body .q-rarity{margin-bottom:8px}
+  .modal-body h3{margin:0 0 10px;font-size:22px;letter-spacing:-.02em}
+  .modal-body p{margin:0;font-size:13.5px;line-height:1.7;color:var(--ink-soft)}
+  .modal-close{margin-top:18px;width:100%;padding:12px;border-radius:14px;background:var(--surface-dark);color:#fff;font-weight:800;font-size:14px}
+
+  .foot{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.03em;padding:30px 0 10px}
+
+  /* ── 이펙트 입자 ── */
+  .p{position:absolute;border-radius:50%;pointer-events:none;will-change:transform,opacity}
+  @keyframes scatterFade{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}18%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1);opacity:0}}
+  @keyframes driftFade{0%{transform:translate(-50%,-50%);opacity:0}20%{opacity:.9}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)));opacity:0}}
+  @keyframes drainFall{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}20%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.7);opacity:0}}
+  .fx-veil{position:absolute;inset:0;opacity:0}
+  @keyframes veilIn{0%{opacity:0}30%{opacity:var(--vop,.5)}100%{opacity:var(--vop,.5)}}
+  @keyframes veilRise{0%{opacity:0;transform:translateY(40%)}100%{opacity:var(--vop,.6);transform:translateY(0)}}
+  .fx-bloom{position:absolute;transform:translate(-50%,-50%);border-radius:50%;opacity:0}
+  @keyframes bloomPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}40%{opacity:.7}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}
+  .fx-arc{position:absolute;border-style:solid;border-bottom:none;border-radius:50% 50% 0 0/100% 100% 0 0;opacity:0}
+  @keyframes arcDraw{0%{opacity:0;transform:translate(-50%,0) scale(.85)}60%{opacity:.92}100%{opacity:.92;transform:translate(-50%,0) scale(1)}}
+  .fx-curtain{position:absolute;top:-6%;height:80%;border-radius:50%;filter:blur(6px);opacity:0;transform-origin:top center}
+  @keyframes curtainWave{0%{opacity:0;transform:scaleY(.7) skewX(-6deg)}25%{opacity:.75}50%{transform:scaleY(1.05) skewX(6deg)}75%{opacity:.7}100%{opacity:0;transform:scaleY(.9) skewX(-3deg)}}
+  .fx-ring{position:absolute;transform:translate(-50%,-50%);border-radius:50%;opacity:0}
+  @keyframes ringPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}50%{opacity:.95}100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}}
+  .fx-beam{position:absolute;transform-origin:left center;opacity:0}
+  @keyframes beamIn{0%{opacity:0}40%{opacity:.75}100%{opacity:.55}}
+
+  /* ── v2: 사운드 토글 · 구름 표정 · 원리 칩 · 확인 모달 · 축하 ── */
+  .icon-btn.muted{opacity:.5}
+  .cloud.clickable svg{animation:breathe 4s ease-in-out infinite;transform-origin:50% 70%}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025,1.015)}}
+  .cloud .eye{transform-box:fill-box;transform-origin:center;transition:transform .2s ease}
+  .cloud.happy{animation:cloudJump .7s cubic-bezier(.34,1.56,.64,1)}
+  .cloud.happy .eye{transform:scaleY(.28)}
+  @keyframes cloudJump{0%,100%{transform:translate(-50%,-50%)}35%{transform:translate(-50%,-62%) scale(1.06,.96)}60%{transform:translate(-50%,-48%) scale(.97,1.03)}}
+  .cloud.huh{animation:cloudHuh .6s ease}
+  .cloud.huh .eye{transform:scale(1.25,.6)}
+  @keyframes cloudHuh{0%,100%{transform:translate(-50%,-50%) rotate(0)}30%{transform:translate(-50%,-50%) rotate(-9deg)}65%{transform:translate(-50%,-50%) rotate(5deg)}}
+  .law-chip{position:absolute;left:12px;top:12px;z-index:7;display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:99px;background:rgba(24,24,27,.8);backdrop-filter:blur(6px);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:-.01em;box-shadow:var(--shadow);animation:chipIn .55s cubic-bezier(.34,1.56,.64,1) .35s both;pointer-events:none;max-width:calc(100% - 24px)}
+  .law-chip i{font-style:normal;font-size:9.5px;font-weight:900;letter-spacing:.12em;color:var(--muted-dark)}
+  @keyframes chipIn{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+  @keyframes curtainIdle{0%,100%{opacity:.42;transform:scaleY(.95) skewX(-4deg)}50%{opacity:.6;transform:scaleY(1.03) skewX(4deg)}}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+  .cf{position:absolute;top:-12px;border-radius:3px;will-change:transform,opacity}
+  .confirm-body{padding:26px 24px 22px;text-align:center}
+  .confirm-body .c-ic{font-size:36px;line-height:1}
+  .confirm-body h3{margin:12px 0 6px;font-size:19px;letter-spacing:-.02em}
+  .confirm-body p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-soft)}
+  .confirm-actions{display:flex;gap:8px;margin-top:20px}
+  .confirm-actions button{flex:1;min-height:46px;border-radius:14px;font-weight:900;font-size:14px;transition:transform .15s}
+  .confirm-actions button:hover{transform:translateY(-1px)}
+  .confirm-actions .ok{background:var(--surface-dark);color:#fff}
+  .confirm-actions .ok.danger{background:var(--danger)}
+  .confirm-actions .cancel{background:var(--surface-soft);border:1px solid var(--border);color:var(--ink-soft)}
+  .modal-card.small{max-width:360px}
+  /* 숨은 오답 해설이 가로 폭을 차지해 선택지 글자가 좁아지던 문제: 해설을 다음 줄로 */
+  .choice{flex-wrap:wrap}
+  .choice .ctext{flex:1;min-width:0}
+  .why-wrap{flex-basis:100%;padding-left:39px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    .p,.fx-curtain{opacity:.9!important}
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-sky"><div class="loader-sun"></div><div class="loader-cloud"></div></div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-label">Reading the sky…</div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <a class="brand" href="index.html" title="처음 화면으로">
+      <div class="brand-icon">🌤️</div>
+      <div class="brand-copy"><strong>하늘의 색</strong><span>Read the Sky</span></div>
+    </a>
+    <div class="top-stats">
+      <div class="stat-pill combo" id="comboPill" title="최고 콤보">🔥 <b id="bestCombo">0</b></div>
+      <div class="stat-pill" title="도감 수집">📖 <b id="dexCount">0</b>/12</div>
+      <button class="icon-btn" id="sfxBtn" title="효과음 켜기/끄기" aria-label="효과음 켜기/끄기">🔊</button>
+      <button class="icon-btn" id="dexBtn" title="도감 열기">📖</button>
+    </div>
+  </div>
+
+  <!-- 메뉴 -->
+  <section class="screen active" id="menu">
+    <div class="hero">
+      <div class="eyebrow">단서를 보고 대기 현상을 추론하세요</div>
+      <h1>하늘은 왜<br><em>그런 색일까?</em></h1>
+      <p>구름을 눌러 대기 정보를 살펴보고, 하늘 색을 만든 원리를 맞혀보세요. 맞히면 그 원리대로 하늘이 반응하고, 현상 도감이 채워집니다.</p>
+    </div>
+    <div class="levels" id="levelList"></div>
+    <div class="title-badge" id="titleBadge"></div>
+    <div class="menu-foot">
+      <button class="ghost-btn" id="dexBtn2">📖 현상 도감 보기</button>
+      <button class="ghost-btn" id="resetBtn">↺ 기록 초기화</button>
+    </div>
+  </section>
+
+  <!-- 게임 -->
+  <section class="screen" id="game">
+    <div class="game-head">
+      <button class="back-btn" id="quitBtn">← 나가기</button>
+      <div class="qdots" id="qdots"></div>
+    </div>
+    <div class="stage-wrap">
+      <div class="stage" id="stage"></div>
+    </div>
+    <div class="qcard" id="qcard"></div>
+  </section>
+
+  <!-- 도감 -->
+  <section class="screen" id="dex">
+    <div class="dex-head">
+      <h2>현상 도감</h2>
+      <p>맞힌 하늘이 카드로 기록됩니다 · 카드를 눌러 다시 보기</p>
+      <div class="dex-progress"><i id="dexBar"></i></div>
+    </div>
+    <div id="dexBody"></div>
+    <div class="menu-foot"><button class="ghost-btn" id="dexBack">← 메뉴로</button></div>
+  </section>
+
+  <div class="foot">단일 HTML · 순수 CSS/JS · 지구과학 대기광학 · prefers-reduced-motion 지원</div>
+</div>
+
+<div id="comboToast"></div>
+<div id="confetti"></div>
+<div id="modal"><div class="modal-card" id="modalCard"></div></div>
+
+<script>
+"use strict";
+
+/* ═══════════════ SKY SFX v1 — 두 게임 공용(복사해서 사용) ═══════════════
+   · Web Audio 합성, 외부 파일 없음
+   · 첫 사용자 제스처에서 AudioContext 생성(브라우저 자동재생 정책)
+   · 음소거/볼륨은 localStorage("sky_sfx")에 저장 → 두 게임이 설정 공유
+   ══════════════════════════════════════════════════════════════════ */
+const SkySFX=(()=>{
+  const KEY="sky_sfx";
+  let cfg={muted:false,vol:0.6};
+  try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY))||{});}catch(e){}
+  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){}};
+  let ctx=null,master=null,noiseBuf=null;
+  function ac(){
+    if(!ctx){
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+      ctx=new AC(); master=ctx.createGain(); master.gain.value=cfg.vol;
+      const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-18; comp.ratio.value=4;
+      master.connect(comp); comp.connect(ctx.destination);
+      noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+      const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    }
+    if(ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  /* 기본 음: 오실레이터 + ADSR 비슷한 엔벨로프 */
+  function tone({f=440,f2=null,type="sine",dur=.15,vol=.25,delay=0,attack=.005,detune=0,vib=0}={}){
+    const c=ac(); if(!c||cfg.muted) return;
+    const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t); o.detune.value=detune;
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    if(vib){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=vib;lg.gain.value=f*.012;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur+.05);}
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.05);
+  }
+  /* 노이즈: 필터로 바람·먼지·연기 질감 */
+  function noise({dur=.3,vol=.15,type="lowpass",f=1200,f2=null,q=.8,delay=0,attack=.02}={}){
+    const c=ac(); if(!c||cfg.muted) return;
+    const t=c.currentTime+delay, s=c.createBufferSource(), fl=c.createBiquadFilter(), g=c.createGain();
+    s.buffer=noiseBuf; s.loop=true; fl.type=type; fl.Q.value=q; fl.frequency.setValueAtTime(f,t);
+    if(f2) fl.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t+dur+.05);
+  }
+  const N=n=>440*Math.pow(2,(n-69)/12); // MIDI → Hz
+  const PENTA=[72,74,76,79,81,84];      // C D E G A C (원인 6종)
+
+  const lib={
+    /* ── 공통 UI ── */
+    tap:   ()=>tone({f:880,f2:660,dur:.06,vol:.12,type:"triangle"}),
+    hover: ()=>tone({f:1320,dur:.03,vol:.04}),
+    open:  ()=>{noise({dur:.28,vol:.08,type:"bandpass",f:600,f2:2400,q:1.2});tone({f:520,f2:780,dur:.18,vol:.08,delay:.04});},
+    close: ()=>{noise({dur:.22,vol:.07,type:"bandpass",f:2200,f2:500,q:1.2});},
+    page:  ()=>noise({dur:.35,vol:.07,type:"lowpass",f:400,f2:3000,q:.6}),
+    poke:  ()=>{tone({f:300,f2:560,dur:.14,vol:.16,type:"sine"});tone({f:620,f2:420,dur:.12,vol:.06,delay:.09});},
+    tick:  ()=>tone({f:1800,dur:.025,vol:.07,type:"square"}),
+    /* ── 판정·보상 ── */
+    correct:()=>[72,76,79,84].forEach((n,i)=>tone({f:N(n),dur:.28,vol:.16,type:"triangle",delay:i*.07})),
+    wrong: ()=>{tone({f:N(57),f2:N(55),dur:.18,vol:.13,type:"triangle"});tone({f:N(53),f2:N(50),dur:.26,vol:.12,type:"triangle",delay:.12});},
+    combo: (n=2)=>{const b=72+Math.min(n,8)*2;[0,4,7].forEach((k,i)=>tone({f:N(b+k),dur:.14,vol:.12,type:"square",delay:i*.045}));},
+    star:  (i=0)=>{tone({f:N(84+i*4),dur:.35,vol:.12,delay:i*.18});tone({f:N(96+i*4),dur:.25,vol:.05,delay:i*.18+.02});},
+    clear: ()=>{[60,64,67,72,76,79,84].forEach((n,i)=>tone({f:N(n),dur:.4,vol:.13,type:"triangle",delay:i*.075}));
+                [84,88,91].forEach((n,i)=>tone({f:N(n),dur:.9,vol:.07,delay:.55+i*.02,vib:5}));},
+    unlock:()=>{tone({f:N(67),dur:.12,vol:.12,type:"square"});tone({f:N(79),dur:.4,vol:.12,type:"triangle",delay:.1});noise({dur:.4,vol:.05,type:"highpass",f:4000,delay:.1});},
+    timeout:()=>[67,63,60].forEach((n,i)=>tone({f:N(n),dur:.3,vol:.12,type:"triangle",delay:i*.14})),
+    /* ── 원리 이펙트(12현상) ── */
+    rayleigh:()=>{for(let i=0;i<10;i++)tone({f:N(88+[0,2,4,7,9][i%5]+(i>4?12:0)),dur:.22,vol:.05,delay:i*.05+Math.random()*.03});},
+    longpath:()=>{tone({f:N(48),dur:1.2,vol:.1,type:"sawtooth",attack:.4});noise({dur:1.1,vol:.05,type:"lowpass",f:2400,f2:300});},
+    mie:     ()=>{noise({dur:.7,vol:.08,type:"lowpass",f:1800,attack:.1});[76,79,84].forEach((n,i)=>tone({f:N(n),dur:.5,vol:.05,delay:i*.03}));},
+    thick:   ()=>{noise({dur:1.2,vol:.12,type:"lowpass",f:220,attack:.3});tone({f:N(36),dur:1,vol:.1,attack:.3});},
+    dust:    ()=>{noise({dur:1,vol:.07,type:"bandpass",f:3000,q:3,attack:.2});noise({dur:1,vol:.05,type:"lowpass",f:500,attack:.3});},
+    fog:     ()=>noise({dur:1.4,vol:.09,type:"lowpass",f:900,f2:500,attack:.5}),
+    rainbow: ()=>[60,62,64,67,69,72,74].forEach((n,i)=>tone({f:N(n+12),dur:.45,vol:.09,type:"triangle",delay:i*.08})),
+    bluehour:()=>[57,64,69].forEach(n=>tone({f:N(n),dur:1.4,vol:.06,attack:.5,vib:4})),
+    green:   ()=>[0,-14,14].forEach(dt=>tone({f:N(55),dur:1.2,vol:.06,type:"sawtooth",detune:dt,attack:.3,vib:3})),
+    aerosol: ()=>{for(let i=0;i<9;i++)noise({dur:.04,vol:.08,type:"highpass",f:2500,delay:Math.random()*.8,attack:.003});tone({f:N(45),dur:1,vol:.07,attack:.3});},
+    aurora:  ()=>[64,71,76,83].forEach((n,i)=>tone({f:N(n),dur:1.8,vol:.05,attack:.6,delay:i*.12,vib:2.5+i})),
+    halo:    ()=>{tone({f:N(88),dur:1.4,vol:.09});tone({f:N(88)*2.76,dur:.9,vol:.03});tone({f:N(95),dur:1.2,vol:.04,delay:.06});},
+    /* ── 팔레트 붓 ── */
+    brushOn: (i=0)=>{tone({f:N(PENTA[i%6]),dur:.32,vol:.13,type:"triangle"});noise({dur:.12,vol:.04,type:"bandpass",f:2000,q:2});},
+    brushOff:(i=0)=>tone({f:N(PENTA[i%6]),f2:N(PENTA[i%6]-5),dur:.16,vol:.08,type:"sine"}),
+    mix:     ()=>{noise({dur:.5,vol:.07,type:"bandpass",f:400,f2:1600,q:1.5});tone({f:N(67),f2:N(72),dur:.3,vol:.08,delay:.15});}
+  };
+  return {
+    play(name,...a){ if(lib[name]) lib[name](...a); },
+    unlock(){ ac(); },
+    get muted(){return cfg.muted;},
+    setMuted(m){cfg.muted=!!m;persist();},
+    get vol(){return cfg.vol;},
+    setVol(v){cfg.vol=v;if(master)master.gain.value=v;persist();},
+    list:()=>Object.keys(lib)
+  };
+})();
+/* ═══════════════ /SKY SFX v1 ═══════════════ */
+
+/* ══════════════════════════════════════════════════════
+   문제 데이터 — 하나의 배열로 분리(추가·수정 용이)
+   scene: 하늘 렌더 정보 / choices: 마지막이 정답 아님, correct 플래그로 지정
+   effect: 정답 시 재생할 시각 원리 애니메이션
+   ══════════════════════════════════════════════════════ */
+const LEVELS = [
+{
+  id:"basic", name:"입문", tag:"기본기", emoji:"🌤️",
+  desc:"맑은 낮·노을·구름. 눈에 보이는 단서가 뚜렷합니다.",
+  thumb:{sky:"linear-gradient(180deg,#2f7fd6,#8fc4f0 60%,#d8ecfb)",sun:{x:70,y:24,r:16,c:"#fff",g:"#ffe9a8"}},
+  questions:[
+    {
+      id:"blue_sky", rarity:"common", card:"한낮의 파란 하늘", cardNote:"레일리 산란",
+      scene:{sky:"linear-gradient(180deg,#2f7fd6 0%,#78b4ec 55%,#cfe7fb 100%)",
+        sun:{x:76,y:22,r:34,c:"#fffdf2",g:"#ffe9a8",glow:34},
+        clouds:[{x:30,y:66,s:.85,tint:"#ffffff",click:true}], horizon:"#cfe0ec"},
+      hint:{"시간대":"정오 무렵","태양 고도":"약 78° (높음)","습도":"42%","특징":"구름 적고 매우 맑음"},
+      q:"이 한낮 하늘이 파랗게 보이는 가장 큰 이유는?",
+      sub:"태양이 높이 떠 있고 공기가 맑습니다.",
+      effect:"rayleigh", law:"레일리 산란 ∝ 1/λ⁴",
+      choices:[
+        {t:"파장이 짧은 파란빛이 공기 분자에 훨씬 강하게 산란되기 때문 (레일리 산란)", correct:true},
+        {t:"태양광이 대기를 긴 거리 통과하며 파란빛이 다 사라져서", why:"그건 '노을'의 원리예요. 한낮엔 태양이 높아 통과 거리가 가장 짧습니다."},
+        {t:"큰 물방울이 모든 색을 고르게 흩뿌려서 (미 산란)", why:"그건 '흰 구름'의 원리. 맑은 하늘엔 큰 물방울이 없어요."}
+      ],
+      explain:"공기 분자에 의한 산란 세기는 파장의 4제곱에 반비례해요(∝1/λ⁴). 파란빛(짧은 파장)이 빨간빛보다 약 5~6배 강하게 흩어져, 사방에서 파란빛이 눈에 들어와 하늘 전체가 파랗게 보입니다."
+    },
+    {
+      id:"sunset", rarity:"common", card:"붉은 노을", cardNote:"긴 대기 통과 거리",
+      scene:{sky:"linear-gradient(180deg,#39408a 0%,#c8552f 52%,#ffcf7a 100%)",
+        sun:{x:50,y:74,r:44,c:"#ffd98a",g:"#ff9a4a",glow:50},
+        clouds:[{x:26,y:44,s:.7,tint:"#ffb27a",click:true},{x:74,y:38,s:.5,tint:"#e08a6a"}], horizon:"#5a3a3a"},
+      hint:{"시간대":"일몰 직전","태양 고도":"약 3° (지평선 근처)","습도":"55%","특징":"태양이 낮게 걸림"},
+      q:"해질 무렵 하늘이 붉게 물드는 이유는?",
+      sub:"태양이 지평선 가까이 낮게 걸려 있습니다.",
+      effect:"longpath", law:"통과 거리 ↑ → 파랑이 먼저 흩어져 사라짐",
+      choices:[
+        {t:"태양이 낮아 빛이 대기를 긴 거리 통과하며 파란빛은 다 산란돼 사라지고 붉은빛만 남아서", correct:true},
+        {t:"파란빛이 공기 분자에 강하게 산란되기 때문 (레일리 산란)", why:"산란 원리는 같지만 그건 '낮 하늘' 설명. 노을의 핵심은 통과 '거리'가 길어졌다는 점!"},
+        {t:"큰 먼지 입자가 붉은빛만 반사해서", why:"먼지가 색을 진하게 할 순 있지만, 근본 원인은 긴 통과 거리로 파랑이 제거되는 것."}
+      ],
+      explain:"해가 지평선 근처에 오면 햇빛이 통과하는 대기 두께가 한낮보다 약 15배(지평선에서는 약 38배) 길어져요. 파란빛은 도중에 대부분 옆으로 산란돼 흩어지고, 산란이 약한 붉은빛만 살아남아 우리 눈에 닿습니다."
+    },
+    {
+      id:"white_cloud", rarity:"common", card:"하얀 뭉게구름", cardNote:"미(Mie) 산란",
+      scene:{sky:"linear-gradient(180deg,#3f8fdc 0%,#7fb8ec 55%,#c4e2f8 100%)",
+        sun:{x:82,y:20,r:26,c:"#fffdf2",g:"#ffe9a8",glow:24},
+        clouds:[{x:44,y:52,s:1.25,tint:"#ffffff",click:true}], horizon:"#cfe0ec"},
+      hint:{"시간대":"한낮","태양 고도":"약 70°","습도":"78% (높음)","특징":"두툼한 물방울 구름"},
+      q:"구름이 유독 새하얗게 보이는 이유는?",
+      sub:"물방울이 촘촘히 뭉친 두꺼운 구름입니다.",
+      effect:"mie", law:"물방울 ≫ 파장 → 모든 색을 고르게",
+      choices:[
+        {t:"구름 속 물방울이 커서 모든 색(파장)을 고르게 산란시키기 때문 (미 산란)", correct:true},
+        {t:"파란빛만 강하게 산란되기 때문 (레일리 산란)", why:"그건 아주 작은 '공기 분자' 이야기. 구름 물방울은 훨씬 커서 색을 가리지 않아요."},
+        {t:"물방울이 햇빛을 흡수하지 않고 그대로 통과시켜서", why:"통과가 아니라 모든 색을 고르게 '되반사'하는 것. 그래서 흰색이에요."}
+      ],
+      explain:"구름 물방울은 지름이 빛의 파장보다 훨씬 큽니다. 이때는 파장에 상관없이 모든 색이 비슷하게 산란(미 산란)돼, 합쳐지면 흰색으로 보여요. 물방울이 많고 두꺼우면 빛이 덜 통과해 회색이 됩니다."
+    },
+    {
+      id:"dark_cloud", rarity:"common", card:"먹구름", cardNote:"두꺼운 구름의 빛 감쇠",
+      scene:{sky:"linear-gradient(180deg,#5a636e 0%,#828a94 55%,#a6acb4 100%)",
+        sun:{x:20,y:18,r:20,c:"#e8ecf0",g:"#c8ccd0",glow:14},
+        clouds:[{x:56,y:46,s:1.35,tint:"#6b7078",click:true},{x:24,y:60,s:.8,tint:"#7a8088"}], horizon:"#4a5058"},
+      hint:{"시간대":"오후, 소나기 직전","태양 고도":"가려짐","습도":"92% (포화 임박)","특징":"구름층이 매우 두꺼움"},
+      q:"비를 머금은 먹구름이 어둡고 회색인 이유는?",
+      sub:"구름층이 위아래로 아주 두껍습니다.",
+      effect:"thick", law:"구름 두께 ↑ → 빛의 양 ↓ (색은 중립)",
+      choices:[
+        {t:"구름이 두꺼워 햇빛이 여러 번 산란·흡수되며 바닥까지 거의 못 내려와서", correct:true},
+        {t:"물방울이 파란빛을 흡수해 어두워져서", why:"물은 오히려 붉은빛을 아주 약간 더 흡수할 뿐, 파랑을 골라 흡수하지 않아요. 어두운 건 색이 아니라 '두께' 때문."},
+        {t:"큰 물방울이 붉은빛만 반사해서", why:"미 산란은 색을 고르게 다뤄요. 회색은 빛의 '양'이 줄어든 결과예요."}
+      ],
+      explain:"구름이 두꺼워지면 위에서 들어온 햇빛이 수많은 물방울에 부딪혀 되돌아가거나 흡수돼, 구름 바닥에는 빛이 조금만 남아요. 색은 여전히 중립(회색)이지만 밝기만 크게 낮아져 어둡게 보입니다."
+    }
+  ]
+},
+{
+  id:"mid", name:"중급", tag:"응용", emoji:"🌫️",
+  desc:"황사·안개·무지개·블루아워. 단서가 조금 애매합니다.",
+  thumb:{sky:"linear-gradient(180deg,#c9a24a,#e0c07a 55%,#efe0b8)",sun:{x:30,y:30,r:14,c:"#f0e0b0",g:"#e0c070"}},
+  questions:[
+    {
+      id:"dust", rarity:"rare", card:"황사 낀 누런 하늘", cardNote:"큰 입자의 산란·흡수",
+      scene:{sky:"linear-gradient(180deg,#c39a44 0%,#dcbc74 52%,#efe2ba 100%)",
+        sun:{x:32,y:28,r:40,c:"#efe0b0",g:"#d8b860",glow:26},
+        clouds:[{x:64,y:56,s:.9,tint:"#d8c088",click:true}], horizon:"#a5843a"},
+      hint:{"시간대":"한낮인데도 뿌옇다","태양 고도":"약 65° (높음)","가시거리":"2 km 미만","특징":"마른 먼지 다량"},
+      q:"황사가 심한 날, 한낮인데도 하늘이 뿌옇고 누런 이유는?",
+      sub:"태양은 높이 떠 있는데 하늘 전체가 침침합니다.",
+      effect:"dust", law:"산란 = 뿌옇게 · 산화철 = 파랑 흡수",
+      choices:[
+        {t:"먼지 입자가 빛을 사방으로 흩어 뿌옇게 만들고, 먼지 속 산화철 광물이 파란빛을 흡수해 누런빛을 남겨서", correct:true},
+        {t:"파장이 짧은 파란빛이 공기 분자에 산란돼서 (레일리)", why:"그건 맑은 날 파란 하늘의 원리. 황사 날은 공기 분자가 아니라 '큰 입자'가 주인공이에요."},
+        {t:"물방울의 미 산란으로 흰색이 돼서", why:"그건 구름·안개. 황사는 물방울이 아니라 마른 먼지 입자입니다."},
+        {t:"태양이 낮아 통과 거리가 길어져서", why:"그건 노을. 황사는 태양이 높은 한낮에도 뿌옇게 누레요 — 태양 고도와 무관."}
+      ],
+      explain:"황사 입자는 지름 수 μm로 공기 분자보다 훨씬 커서, 레일리 산란처럼 파랑을 골라 흩지 않고 빛 전체를 뿌옇게 흩뿌려요. 여기에 먼지 속 산화철(황토 성분) 광물이 파란빛을 골라 흡수하기 때문에, 하늘이 흐릿한 누런빛으로 보입니다."
+    },
+    {
+      id:"fog", rarity:"rare", card:"우윳빛 안개", cardNote:"포화 수증기의 다중 미 산란",
+      scene:{sky:"linear-gradient(180deg,#d4d9dc 0%,#e8ebec 55%,#f6f7f7 100%)",
+        sun:{x:50,y:26,r:30,c:"#f4f6f7",g:"#e0e4e6",glow:20},
+        clouds:[{x:40,y:60,s:.9,tint:"#eef1f2",click:true}], horizon:"#cdd3d6"},
+      hint:{"시간대":"이른 아침","기온":"이슬점과 거의 같음","습도":"100% (포화)","특징":"지표에 뜬 작은 물방울"},
+      q:"짙은 안개 속 세상이 온통 우윳빛으로 뿌연 이유는?",
+      sub:"습도가 100%, 공기가 물방울로 가득합니다.",
+      effect:"fog", law:"다중 미 산란 → 우윳빛",
+      choices:[
+        {t:"작은 물방울이 가득해 빛이 모든 색으로 고르게, 여러 번 산란되기 때문 (미 산란)", correct:true},
+        {t:"파란빛만 산란되기 때문", why:"안개 물방울은 공기 분자보다 훨씬 커서 색을 가리지 않아요. 그래서 파랑이 아니라 흰색입니다."},
+        {t:"먼지가 빛을 흡수해서", why:"흡수라면 어두워져요. 안개는 오히려 밝고 하얗게 빛이 퍼집니다."},
+        {t:"물방울이 빛을 굴절시켜 무지개를 만들어서", why:"무지개처럼 색이 또렷이 갈라지려면 빗방울만큼 커야 해요. 안개 방울은 빗방울보다 훨씬 작아 색이 섞여 흰색이 됩니다."}
+      ],
+      explain:"안개는 지표 근처에 뜬 아주 작은 물방울이에요. 구름과 같은 미 산란이지만 방울이 촘촘해 빛이 여러 번 산란(다중 산란)되며 방향을 잃어요. 모든 색이 섞여 균일한 우윳빛이 됩니다."
+    },
+    {
+      id:"rainbow", rarity:"rare", card:"무지개", cardNote:"물방울의 굴절·반사·분산",
+      scene:{sky:"linear-gradient(180deg,#3f6fb0 0%,#79a6d6 55%,#bcd6ea 100%)",
+        sun:null, /* 무지개는 태양을 등지고 보므로 화면 안에 태양 없음 */
+        clouds:[{x:24,y:34,s:.8,tint:"#c8d2da",click:true}], horizon:"#4a7a4a"},
+      hint:{"시간대":"소나기 직후","태양 위치":"등 뒤(관측자 반대편)","습도":"88%","특징":"공기 중 큰 빗방울"},
+      q:"비 온 뒤 태양 반대편 하늘에 무지개가 뜨는 원리는?",
+      sub:"등 뒤에 해가 있고 앞쪽엔 빗방울이 떠 있습니다.",
+      effect:"rainbow", law:"굴절·반사·분산 — 빨강 42° · 보라 40°",
+      choices:[
+        {t:"물방울 안에서 햇빛이 굴절·반사되며 색깔별로 다른 각도로 갈라지기 때문 (분산)", correct:true},
+        {t:"물방울이 색을 고르게 산란시켜서 (미 산란)", why:"미 산란은 흰색을 만들어요. 무지개는 색이 '갈라지는' 굴절·분산이 핵심입니다."},
+        {t:"파란빛이 공기 분자에 산란돼서", why:"그건 파란 하늘. 무지개는 특정 각도(약 42°)에서만 보이는 굴절 현상이에요."},
+        {t:"먼지 입자가 빛을 흡수해 색을 남겨서", why:"무지개는 흡수가 아니라, 빛이 물방울에서 꺾이며 무지개색으로 펼쳐지는 것."}
+      ],
+      explain:"햇빛이 물방울로 들어갈 때 굴절되고, 뒷면에서 반사된 뒤 다시 굴절돼 나와요. 색마다 굴절률이 조금씩 달라 빨강은 약 42°, 보라는 약 40°로 갈라집니다. 그래서 태양 반대편 하늘에 둥근 색띠로 보여요."
+    },
+    {
+      id:"bluehour", rarity:"rare", card:"블루 아워", cardNote:"직사광 소멸 + 오존의 붉은빛 흡수",
+      scene:{sky:"linear-gradient(180deg,#0d1b4a 0%,#2a3f8a 52%,#6a7fbc 100%)",
+        sun:null, glow:{x:50,y:96,c:"rgba(230,150,90,.5)"}, stars:4,
+        clouds:[{x:34,y:40,s:.7,tint:"#3a4a7a",click:true}], horizon:"#101a3a"},
+      hint:{"시간대":"일몰 20분 후","태양 고도":"약 -5° (지평선 아래)","특징":"직사광 없음, 하늘만 밝음"},
+      q:"해가 진 직후, 하늘이 깊고 균일한 파랑으로 물드는 이유는?",
+      sub:"태양은 이미 지평선 아래로 넘어갔습니다.",
+      effect:"bluehour", law:"직사광 소멸 + 오존이 붉은빛 흡수",
+      choices:[
+        {t:"태양이 지평선 아래라 붉은 직사광이 사라지고, 높은 대기를 길게 지나온 빛에서 오존이 주황·붉은빛을 흡수해 파란빛만 남아서", correct:true},
+        {t:"낮처럼 파란빛이 공기 분자에 산란되기 때문", why:"산란도 한몫하지만, 그것만으론 해 진 뒤 하늘이 오히려 노르스름해져요. 깊은 파랑의 핵심은 직사광이 사라진 상태에서 오존이 붉은빛을 흡수한다는 점이에요."},
+        {t:"태양광이 긴 거리를 통과해 붉어져서", why:"그건 해가 아직 보일 때의 노을. 블루 아워는 해가 완전히 넘어간 뒤라 붉은빛이 빠집니다."},
+        {t:"달빛이 하늘을 파랗게 비춰서", why:"달빛은 그만큼 밝지 않아요. 파랑은 높은 대기에 남아 산란된 태양빛입니다."}
+      ],
+      explain:"태양이 지평선 살짝 아래에 있으면 직사광은 지표에 닿지 못하고, 높은 대기를 비스듬히 길게 지나온 빛만 하늘을 밝혀요. 이 긴 경로에서 성층권의 오존이 주황·붉은빛을 흡수(샤퓌 흡수대)해 파란빛만 남습니다. 그래서 짧은 시간 동안 하늘이 균일하고 깊은 파랑(블루 아워)으로 물듭니다."
+    }
+  ]
+},
+{
+  id:"hard", name:"하드", tag:"특이 현상", emoji:"🌌",
+  desc:"폭풍·연무·오로라·무리. 그럴듯한 오답을 걸러내세요.",
+  thumb:{sky:"linear-gradient(180deg,#050a1a,#0a1a3a 60%,#152a4a)",sun:{x:70,y:70,r:0,c:"#0a1a3a",g:"#2fd06a"}},
+  questions:[
+    {
+      id:"green_storm", rarity:"epic", card:"초록빛 폭풍 하늘", cardNote:"두꺼운 구름의 붉은빛 흡수 + 저녁빛 (가설)",
+      scene:{sky:"linear-gradient(180deg,#4a5a3a 0%,#79854a 45%,#b3a95c 100%)",
+        sun:{x:16,y:78,r:30,c:"#e0c060",g:"#c0a840",glow:20},
+        clouds:[{x:58,y:40,s:1.4,tint:"#5a6448",click:true},{x:26,y:54,s:.9,tint:"#6a7450"}], horizon:"#3a422e"},
+      hint:{"시간대":"늦은 오후 (폭풍 접근)","구름":"매우 두꺼운 적란운","특징":"우박·큰 물방울 다량","기압":"급강하 중"},
+      q:"거대한 폭풍(슈퍼셀)이 다가올 때 하늘이 기묘한 초록빛을 띠는 현상 — 과학자들이 제시한 가설은?",
+      sub:"두껍고 어두운 적란운이 저녁 무렵 하늘을 덮었습니다.",
+      effect:"green", law:"붉은 저녁빛 − 구름의 붉은빛 흡수 → 초록",
+      choices:[
+        {t:"파랑이 빠진 저녁의 붉은 햇빛이, 붉은빛을 덜어내는 두꺼운 적란운을 지나며 가운데 초록빛만 남는다는 가설", correct:true},
+        {t:"구름 속 식물성 물질이 빛을 초록으로 반사해서", why:"근거 없는 속설이에요. 구름에는 초록 색소가 없습니다."},
+        {t:"우박이 초록빛을 반사해서", why:"우박은 무색투명에 가까워 특정 색을 만들지 않아요."},
+        {t:"번개의 초록 섬광이 하늘에 남아서", why:"번개는 순간적이고 대개 흰·보랏빛. 지속되는 하늘색을 설명하지 못해요."}
+      ],
+      explain:"아직 원인이 확정되지 않은 현상이에요. 대표적인 가설은 이렇습니다 — 물은 붉은빛을 아주 조금씩 흡수해서, 물을 잔뜩 머금은 매우 두꺼운 적란운을 통과한 빛은 푸르스름해져요. 그런데 폭풍이 흔한 늦은 오후·저녁의 햇빛은 이미 파랑이 빠져 붉어진 상태예요. 파랑이 빠진 빛이 빨강까지 덜어내는 구름을 지나면 가운데의 초록빛이 남아 기묘한 초록 하늘로 보인다는 것(색을 '더하는' 게 아니라 '걸러내는' 원리). 다만 계산해 보면 구름 속 물의 흡수만으로는 초록이 되기에 부족해서, 다른 요인도 함께 작용할 것으로 보고 연구가 이어지고 있어요. 나머지 보기(초록 색소·우박 반사·번개 잔광)는 근거 없는 속설입니다."
+    },
+    {
+      id:"smoke_sun", rarity:"epic", card:"연무 속 붉은 태양", cardNote:"미세 연기 입자의 파장 선택적 소광",
+      scene:{sky:"linear-gradient(180deg,#6e463a 0%,#a85a38 52%,#d0946a 100%)",
+        sun:{x:50,y:34,r:38,c:"#e0502a",g:"#c03a1a",glow:22},
+        clouds:[{x:74,y:58,s:.8,tint:"#9a6a52",click:true}], horizon:"#5a3a2e"},
+      hint:{"시간대":"한낮 (연기 확산)","태양 고도":"약 60° (높음)","가시거리":"급감","특징":"산불 연기·재 부유"},
+      q:"산불 연기가 퍼진 날, 한낮에도 태양이 핏빛으로 붉고 흐린 이유는?",
+      sub:"태양은 높이 떠 있는데도 붉고 침침합니다.",
+      effect:"aerosol", law:"입자 ≈ 파장 → 파랑·초록을 걸러냄",
+      choices:[
+        {t:"가시광선 파장과 비슷한 크기의 연기 입자가 파란·초록빛을 더 강하게 산란·흡수해 걸러내기 때문", correct:true},
+        {t:"태양이 낮아 통과 거리가 길어져서", why:"그건 노을. 산불 땐 한낮 높은 태양도 붉게 보여요 — 원인은 공기 중 입자입니다."},
+        {t:"물방울의 미 산란으로 붉어져서", why:"미 산란은 흰색을 만들어요. 붉게 거르는 건 연기의 마른 입자예요."},
+        {t:"태양 자체가 뜨거워져 붉게 변해서", why:"태양의 색은 그대로예요. 변한 건 그 빛이 통과하는 '공기'입니다."}
+      ],
+      explain:"산불 연기 입자는 지름 0.1~1 μm 정도로 가시광선 파장과 비슷하거나 작아요. 이런 크기의 입자는 파장이 짧은 파랑·초록을 더 강하게 흩고, 검댕(그을음)은 빛을 흡수까지 해요. (입자가 이보다 훨씬 크면 색을 가리지 않고 회색으로 흐려질 뿐이에요.) 살아남은 붉은빛만 통과해, 태양 고도가 높은 한낮에도 태양이 붉고 침침하게 보입니다."
+    },
+    {
+      id:"aurora", rarity:"epic", card:"오로라", cardNote:"대기 기체의 발광(산란 아님)",
+      scene:{sky:"linear-gradient(180deg,#050a1a 0%,#0a1730 60%,#132542 100%)",
+        sun:null, stars:22,
+        clouds:[{x:78,y:70,s:.6,tint:"#1a2842",click:true}], horizon:"#0a1220"},
+      hint:{"시간대":"극지방 겨울밤","고도":"약 100~300 km 상공","특징":"초록·분홍 커튼이 일렁임"},
+      q:"극지 밤하늘에서 초록·분홍 커튼이 일렁이는 오로라의 원리는?",
+      sub:"태양은 없고, 대기 자체가 빛을 냅니다.",
+      effect:"aurora", law:"산소 초록·빨강 · 질소 분홍·보라 (발광)",
+      choices:[
+        {t:"태양에서 온 하전입자가 대기의 산소·질소와 충돌해 그 기체가 스스로 빛을 내기 때문 (발광)", correct:true},
+        {t:"달빛이 얼음 결정에 산란돼서", why:"오로라는 반사·산란이 아니라, 기체가 스스로 빛을 내는 '발광'이에요."},
+        {t:"파란빛이 극지 대기에 강하게 산란돼서", why:"산란이라면 낮에만 보여야죠. 오로라는 밤에 대기가 직접 빛나는 현상입니다."},
+        {t:"오존층이 태양빛을 초록으로 반사해서", why:"오존은 그런 색을 만들지 않아요. 색은 산소·질소 기체의 고유 발광색이에요."}
+      ],
+      explain:"태양풍의 하전입자가 지구 자기장을 따라 극지 상공으로 쏟아져 들어와, 고층 대기의 산소·질소 분자와 충돌해요. 에너지를 받은 기체가 안정해지며 빛을 내는데(발광), 산소는 초록·붉은색을, 질소는 분홍·보라색을 냅니다. 산란이 아니라 기체 자체가 빛나는 현상이에요."
+    },
+    {
+      id:"halo", rarity:"epic", card:"해무리 (22° 무리)", cardNote:"빙정의 굴절",
+      scene:{sky:"linear-gradient(180deg,#5a8fd0 0%,#9cc2e8 55%,#cfe2f4 100%)",
+        sun:{x:50,y:32,r:22,c:"#fffdf2",g:"#fff2c8",glow:16},
+        clouds:[{x:22,y:62,s:.7,tint:"#dbe6f0",click:true}], horizon:"#bcd0e0", veil:"rgba(255,255,255,.14)"},
+      hint:{"시간대":"낮","구름":"얇은 권운(고도 6 km↑)","기온":"상공 영하","특징":"태양 둘레 둥근 고리"},
+      q:"얇은 권운이 낀 날, 태양 둘레에 둥근 빛의 고리(무리)가 생기는 이유는?",
+      sub:"하늘은 맑은데 태양 주위에 뿌연 고리가 보입니다.",
+      effect:"halo", law:"육각 빙정의 최소편각 22°",
+      choices:[
+        {t:"높은 구름 속 육각기둥 얼음 결정이 빛을 굴절시켜 약 22° 떨어진 방향으로 모으기 때문", correct:true},
+        {t:"물방울이 빛을 반사해 고리를 만들어서", why:"무리는 물방울이 아니라 '얼음 결정'의 굴절이에요. 물방울은 무지개를 만들죠."},
+        {t:"대기의 먼지가 빛을 원형으로 산란해서", why:"산란은 뿌연 빛무리만 만들어요. 뚜렷한 22° 고리는 얼음 결정의 굴절에서 나옵니다."},
+        {t:"파란빛이 태양 둘레에 산란돼서", why:"그건 그냥 파란 하늘. 무리는 특정 각도(22°)에 나타나는 굴절 고리예요."}
+      ],
+      explain:"권운을 이루는 육각기둥 얼음 결정에 빛이 들어가면 결정 면을 지나며 최소 약 22°로 꺾여요. 하늘 곳곳의 무수한 결정이 이 각도로 빛을 보내, 태양에서 22° 떨어진 곳에 둥근 고리로 모입니다. 굴절이라 고리 안쪽이 살짝 붉게 보이기도 해요."
+    }
+  ]
+}
+];
+
+/* ══════════════════════════════════════════════════════
+   상태 & 저장 (localStorage 접두어 sky_)
+   ══════════════════════════════════════════════════════ */
+const STORE_KEY = "sky_progress_v1";
+let state = load();
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s&&s.found) return s; }catch(e){}
+  return {found:[], bestCombo:0};
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+const isFound = id => state.found.includes(id);
+const allQ = () => LEVELS.flatMap(l=>l.questions);
+const findQ = id => allQ().find(q=>q.id===id);
+function levelCleared(l){ return l.questions.every(q=>isFound(q.id)); }
+function levelUnlocked(i){
+  if(i===0) return true;
+  return levelCleared(LEVELS[i-1]);
+}
+
+/* 세션(현재 플레이) 상태 */
+let sess = null;
+
+/* ══════════════════════════════════════════════════════
+   화면 전환
+   ══════════════════════════════════════════════════════ */
+const screens = {menu:byId("menu"), game:byId("game"), dex:byId("dex")};
+function show(name){
+  Object.values(screens).forEach(s=>s.classList.remove("active"));
+  screens[name].classList.add("active");
+  window.scrollTo({top:0,behavior:"instant"in document.body.style?"instant":"auto"});
+}
+function byId(id){ return document.getElementById(id); }
+/* ── v2 공통: 효과음 토글 · 확인 모달 · 구름 표정 · 축하 ── */
+function paintSfx(){ const b=byId("sfxBtn"); b.textContent=SkySFX.muted?"🔇":"🔊"; b.classList.toggle("muted",SkySFX.muted); }
+function askConfirm({ic="❓",title,msg,ok="확인",danger=false,onOk}){
+  const card=byId("modalCard"); card.classList.add("small");
+  card.innerHTML=`<div class="confirm-body"><div class="c-ic">${ic}</div><h3>${title}</h3><p>${msg}</p>
+    <div class="confirm-actions"><button class="cancel" id="cfNo">취소</button><button class="ok ${danger?'danger':''}" id="cfYes">${ok}</button></div></div>`;
+  byId("modal").classList.add("show"); SkySFX.play("open");
+  byId("cfNo").onclick=closeModal;
+  byId("cfYes").onclick=()=>{ byId("modal").classList.remove("show"); SkySFX.play("tap"); if(onOk) onOk(); };
+  byId("cfYes").focus();
+}
+function cloudMood(mood){
+  const c=byId("stage").querySelector(".cloud.clickable"); if(!c) return;
+  c.classList.remove("poke","happy","huh"); void c.offsetWidth; c.classList.add(mood);
+  clearTimeout(c._m); c._m=setTimeout(()=>c.classList.remove(mood), mood==="happy"?1400:700);
+}
+function confetti(n=60){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const L=document.getElementById("confetti"), cols=["#2f7fd6","#8fc4f0","#ffd27a","#e0663a","#ffffff","#8affc0","#c7a6ff"];
+  for(let i=0;i<n;i++){
+    const d=document.createElement("i"), w=6+Math.random()*6; d.className="cf";
+    d.style.cssText=`left:${Math.random()*100}%;width:${w}px;height:${w*(.5+Math.random())}px;background:${cols[i%cols.length]};box-shadow:0 0 0 1px rgba(0,0,0,.05)`;
+    L.appendChild(d);
+    d.animate([{transform:"translate(0,0) rotate(0deg)",opacity:1},
+      {transform:`translate(${(Math.random()-.5)*160}px,${innerHeight+40}px) rotate(${(Math.random()-.5)*900}deg)`,opacity:.85}],
+      {duration:1600+Math.random()*1400,delay:Math.random()*400,easing:"cubic-bezier(.2,.6,.4,1)"}).onfinish=()=>d.remove();
+  }
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ══════════════════════════════════════════════════════
+   하늘 씬 렌더러 (게임 무대 + 도감 썸네일 공용)
+   ══════════════════════════════════════════════════════ */
+function cloudSVG(tint, w){
+  // 눈 달린 귀여운 구름 (디자인 DNA 계승)
+  const dark = shade(tint,-0.42);
+  return `<svg width="${w}" height="${w*0.66}" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+    <g>
+      <ellipse cx="42" cy="52" rx="34" ry="24" fill="${tint}"/>
+      <ellipse cx="74" cy="48" rx="30" ry="26" fill="${tint}"/>
+      <ellipse cx="60" cy="60" rx="46" ry="18" fill="${tint}"/>
+      <ellipse cx="60" cy="42" rx="24" ry="20" fill="${shade(tint,0.08)}"/>
+      <ellipse class="eye" cx="50" cy="50" rx="3.4" ry="5"/>
+      <ellipse class="eye" cx="70" cy="50" rx="3.4" ry="5"/>
+      <circle class="blush" cx="43" cy="58" r="4.5"/>
+      <circle class="blush" cx="77" cy="58" r="4.5"/>
+      <path d="M55 60 Q60 65 65 60" stroke="${dark}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".55"/>
+    </g></svg>`;
+}
+function shade(hex,amt){
+  const c = hex.replace("#",""); if(c.length<6) return hex;
+  let r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
+  const f = amt<0 ? 0 : 255, p = Math.abs(amt);
+  r=Math.round(r+(f-r)*p); g=Math.round(g+(f-g)*p); b=Math.round(b+(f-b)*p);
+  return "#"+[r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+/* 무대에 씬 렌더 (인터랙션 포함) */
+function renderStage(el, sc, opts){
+  opts = opts||{};
+  const W = el.clientWidth || 640, H = el.clientHeight || W*0.5625;
+  el.style.background = sc.sky;
+  let html = "";
+  if(sc.stars){
+    html += `<div class="stars">`;
+    for(let i=0;i<sc.stars;i++){
+      const x=(i*53%100), y=(i*37%60), d=(i%5)*0.6;
+      html += `<span class="star" style="left:${x}%;top:${y}%;animation-delay:${d}s"></span>`;
+    }
+    html += `</div>`;
+  }
+  if(sc.glow){
+    html += `<div style="position:absolute;left:${sc.glow.x}%;top:${sc.glow.y}%;width:70%;height:50%;transform:translate(-50%,-50%);
+      background:radial-gradient(ellipse,${sc.glow.c},transparent 70%);z-index:1;pointer-events:none"></div>`;
+  }
+  if(sc.sun && sc.sun.r>0){
+    const s=sc.sun, d=s.r*2, gl=s.glow||s.r;
+    html += `<div class="sun" style="left:${s.x}%;top:${s.y}%;width:${d}px;height:${d}px;
+      background:radial-gradient(circle at 40% 40%,#fff 8%,${s.c} 55%,${shade(s.c,-0.1)} 100%);
+      box-shadow:0 0 ${gl}px ${gl*0.5}px ${s.g}88, 0 0 ${gl*2}px ${gl}px ${s.g}44"></div>`;
+  }
+  if(sc.horizon){
+    html += `<div class="horizon" style="background:linear-gradient(180deg,${sc.horizon},${shade(sc.horizon,-0.25)})"></div>`;
+  }
+  if(sc.veil){
+    html += `<div style="position:absolute;inset:0;background:${sc.veil};z-index:3;pointer-events:none"></div>`;
+  }
+  // 구름
+  (sc.clouds||[]).forEach((cl,idx)=>{
+    const cw = Math.round(W*0.34*(cl.s||1));
+    const clickable = cl.click && opts.interactive;
+    html += `<button class="cloud ${clickable?'clickable':''}" data-cloud="${idx}" ${clickable?'':'tabindex="-1" aria-hidden="true"'}
+      style="left:${cl.x}%;top:${cl.y}%;width:${cw}px;pointer-events:${clickable?'auto':'none'}">${cloudSVG(cl.tint,cw)}</button>`;
+  });
+  if(opts.interactive){
+    html += `<div class="fx" id="fxLayer"></div>`;
+    html += `<div class="obs-hint" id="obsHint"></div>`;
+    html += `<div class="stage-hint" id="stageHint">👆 구름을 눌러 대기 정보 보기</div>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════
+   메뉴
+   ══════════════════════════════════════════════════════ */
+function renderMenu(){
+  refreshTop();
+  const list = byId("levelList");
+  list.innerHTML = LEVELS.map((l,i)=>{
+    const unlocked = levelUnlocked(i);
+    const done = l.questions.filter(q=>isFound(q.id)).length;
+    const total = l.questions.length;
+    const cleared = done===total;
+    const t = l.thumb;
+    const sunHtml = t.sun.r>0 ? `<div class="tsun" style="left:${t.sun.x}%;top:${t.sun.y}%;width:${t.sun.r}px;height:${t.sun.r}px;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff,${t.sun.c});box-shadow:0 0 10px 3px ${t.sun.g}"></div>` : "";
+    return `<button class="level-card ${unlocked?'':'locked'}" data-level="${i}" ${unlocked?'':'disabled'}>
+      <div class="lv-thumb" style="background:${t.sky}">${sunHtml}</div>
+      <div class="lv-body">
+        <div class="lv-tag">Stage ${i+1} · ${l.tag}</div>
+        <h3>${l.emoji} ${l.name}</h3>
+        <p>${l.desc}</p>
+        <div class="lv-meta">
+          <span class="lv-chip ${cleared?'done':''}">${cleared?'✓ 완료':'수집 '+done+'/'+total}</span>
+          ${!unlocked?'<span class="lv-chip">🔒 이전 단계 클리어 필요</span>':''}
+        </div>
+      </div>
+      ${unlocked?'<div class="lv-arrow">→</div>':'<div class="lv-lock">🔒</div>'}
+      <div class="lv-progress"><i style="width:${total?done/total*100:0}%"></i></div>
+    </button>`;
+  }).join("");
+  list.querySelectorAll(".level-card:not(.locked)").forEach(btn=>{
+    btn.addEventListener("click",()=>{ SkySFX.play("page"); startLevel(+btn.dataset.level); });
+  });
+  // 칭호
+  const foundCount = state.found.length;
+  const badge = byId("titleBadge");
+  if(foundCount>=12) badge.innerHTML = `🏆 칭호 획득 — <b>대기 관측가</b> · 모든 현상을 해독했습니다!`;
+  else badge.innerHTML = `현상 <b>${foundCount}</b> / 12 해독 · 모두 모으면 <b>대기 관측가</b> 칭호`;
+}
+function refreshTop(){
+  byId("dexCount").textContent = state.found.length;
+  byId("bestCombo").textContent = state.bestCombo||0;
+}
+
+/* ══════════════════════════════════════════════════════
+   게임 진행
+   ══════════════════════════════════════════════════════ */
+function startLevel(li){
+  const lv = LEVELS[li];
+  sess = {li, lv, idx:0, combo:0, correctCount:0};
+  show("game");
+  renderQuestion();
+}
+function renderQuestion(){
+  const {lv, idx} = sess;
+  const q = lv.questions[idx];
+  sess.answered = false;
+  // dots
+  byId("qdots").innerHTML = lv.questions.map((qq,i)=>
+    `<span class="qdot ${i<idx?'ok':''} ${i===idx?'cur':''}"></span>`).join("");
+  // stage
+  const stage = byId("stage");
+  renderStage(stage, q.scene, {interactive:true});
+  bindStage(q);
+  // question card
+  const rc = {common:"흔한 현상",rare:"드문 현상",epic:"희귀 현상"}[q.rarity];
+  const rEmoji = {common:"◍",rare:"◆",epic:"✦"}[q.rarity];
+  const card = byId("qcard");
+  card.innerHTML = `
+    <span class="q-rarity ${q.rarity}">${rEmoji} ${rc}</span>
+    <h2>${q.q}</h2>
+    <p class="q-sub">${q.sub}</p>
+    <div class="choices" id="choices"></div>
+    <div id="afterArea"></div>`;
+  const ch = byId("choices");
+  // 정답이 항상 같은 자리에 오지 않도록 매 문제 선택지를 섞는다
+  const shuffled = shuffle(q.choices.slice());
+  shuffled.forEach((c,i)=>{
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.innerHTML = `<span class="mark">${String.fromCharCode(65+i)}</span>
+      <span class="ctext">${c.t}</span>
+      <div class="why-wrap"><div><p class="why">${c.why||''}</p></div></div>`;
+    b.addEventListener("click",()=>pick(q,c,b));
+    ch.appendChild(b);
+  });
+}
+
+function bindStage(q){
+  const stage = byId("stage");
+  const obs = byId("obsHint");
+  const stageHint = byId("stageHint");
+  stage.querySelectorAll(".cloud.clickable").forEach(cloud=>{
+    cloud.addEventListener("click",e=>{
+      e.stopPropagation();
+      SkySFX.play("poke");
+      cloud.classList.remove("poke"); void cloud.offsetWidth; cloud.classList.add("poke");
+      if(stageHint) stageHint.classList.add("gone");
+      // 힌트 위치: 구름 위쪽
+      const rect = cloud.getBoundingClientRect();
+      const srect = stage.getBoundingClientRect();
+      const cx = (rect.left+rect.width/2 - srect.left)/srect.width*100;
+      const cyTop = (rect.top - srect.top)/srect.height*100;
+      obs.style.left = Math.min(78,Math.max(22,cx))+"%";
+      obs.style.top = Math.max(4,cyTop-2)+"%";
+      obs.innerHTML = `<div class="oh-title">🔍 관측 데이터</div>` +
+        Object.entries(q.hint).map(([k,v])=>`<div class="obs-row"><span>${k}</span><b>${v}</b></div>`).join("");
+      obs.classList.add("show");
+      clearTimeout(obs._t);
+      obs._t = setTimeout(()=>obs.classList.remove("show"), 6500);
+    });
+  });
+}
+
+function pick(q, choice, btn){
+  if(sess.answered) return;
+  if(btn.disabled) return;
+  if(choice.correct){
+    sess.answered = true;
+    btn.classList.add("correct");
+    byId("choices").querySelectorAll(".choice").forEach(b=>{ b.disabled=true; if(b!==btn) b.classList.add("dim"); });
+    sess.combo++; sess.correctCount++;
+    if(!isFound(q.id)){ state.found.push(q.id); }
+    if(sess.combo>(state.bestCombo||0)) state.bestCombo=sess.combo;
+    save(); refreshTop();
+    playEffect(q.effect);
+    SkySFX.play("correct"); setTimeout(()=>SkySFX.play(q.effect),280);
+    cloudMood("happy"); const sh=byId("stageHint"); if(sh) sh.classList.add("gone");
+    if(q.law){ const chip=document.createElement("div"); chip.className="law-chip"; chip.innerHTML=`<i>원리</i>${q.law}`; byId("stage").appendChild(chip); }
+    if(sess.combo>=2){ const n=sess.combo; showCombo(n); setTimeout(()=>SkySFX.play("combo",n),460); }
+    // 해설 + 다음
+    const first = q.card;
+    const after = byId("afterArea");
+    const last = sess.idx===sess.lv.questions.length-1;
+    after.innerHTML = `
+      <div class="explain">
+        <div class="ex-tag">✓ 정답 · 원리 해설</div>
+        <h3>${q.card} — ${q.cardNote}</h3>
+        <p>${q.explain}</p>
+        ${sess.combo>=2?`<div class="ex-combo">🔥 ${sess.combo} 콤보!</div>`:''}
+      </div>
+      <button class="next-btn" id="nextBtn">${last?'단계 결과 보기 →':'다음 하늘 →'}</button>`;
+    byId("nextBtn").addEventListener("click",()=>{ SkySFX.play("tap"); nextQuestion(); });
+    byId("nextBtn").scrollIntoView({behavior:"smooth",block:"nearest"});
+  } else {
+    // 오답
+    btn.classList.add("wrong","shake");
+    setTimeout(()=>btn.classList.remove("shake"),360);
+    btn.disabled = true;
+    const wrap = btn.querySelector(".why-wrap");
+    if(wrap) wrap.classList.add("open");
+    sess.combo = 0; refreshTop();
+    // 구름이 갸웃하며 오답 피드백
+    SkySFX.play("wrong"); cloudMood("huh");
+  }
+}
+
+function nextQuestion(){
+  if(sess.idx < sess.lv.questions.length-1){
+    sess.idx++; renderQuestion();
+    byId("game").scrollIntoView({behavior:"smooth",block:"start"});
+  } else {
+    renderClear();
+  }
+}
+
+function renderClear(){
+  const {lv, li} = sess;
+  const nextLv = LEVELS[li+1];
+  const justUnlocked = nextLv && levelCleared(lv);
+  const card = byId("qcard");
+  byId("stage").parentElement.style.display="none";
+  byId("qdots").innerHTML="";
+  card.innerHTML = `
+    <div class="clear-card">
+      <div class="clear-emoji">${levelCleared(lv)?'🎊':'🌤️'}</div>
+      <h2>${lv.name} 단계 완료!</h2>
+      <p>${lv.questions.length}개의 하늘을 관측했습니다. ${lv.name==='하드'&&state.found.length>=12?'모든 현상을 해독했어요!':'단서를 읽는 눈이 좋아지고 있어요.'}</p>
+      <div class="clear-stats">
+        <div class="clear-stat"><b>${sess.correctCount}/${lv.questions.length}</b><span>정답</span></div>
+        <div class="clear-stat"><b>${state.found.length}/12</b><span>도감</span></div>
+        <div class="clear-stat"><b>${state.bestCombo||0}</b><span>최고 콤보</span></div>
+      </div>
+      ${justUnlocked?`<div class="unlock-banner">🔓 <b>${nextLv.name}</b> 단계가 해금되었습니다!</div>`:''}
+      ${state.found.length>=12?`<div class="unlock-banner" style="background:#fef9c3;border-color:#fde68a;color:#854d0e">🏆 칭호 획득 — <b>대기 관측가</b></div>`:''}
+      <div class="clear-actions">
+        <button class="btn-primary" id="toMenu">메뉴로 →</button>
+        <button class="ghost-btn" id="toDex">📖 도감 보기</button>
+      </div>
+    </div>`;
+  SkySFX.play("clear");
+  if(levelCleared(lv)) setTimeout(()=>confetti(state.found.length>=12?110:60),150);
+  if(justUnlocked) setTimeout(()=>SkySFX.play("unlock"),1000);
+  byId("toMenu").addEventListener("click",()=>{ SkySFX.play("page"); goMenu(); });
+  byId("toDex").addEventListener("click",()=>{ SkySFX.play("page"); renderDex(); show("dex"); });
+  card.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function goMenu(){
+  byId("stage").parentElement.style.display="";
+  renderMenu(); show("menu");
+}
+
+/* 콤보 토스트 */
+function showCombo(n){
+  const t = byId("comboToast");
+  t.textContent = `🔥 ${n} COMBO`;
+  t.classList.remove("play"); void t.offsetWidth; t.classList.add("play");
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove("play"), 1150); // 애니메이션 후 정리(박제 방지)
+}
+
+/* ══════════════════════════════════════════════════════
+   정답 시 원리 애니메이션 (이펙트)
+   ══════════════════════════════════════════════════════ */
+function reduced(){ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+function playEffect(type){
+  const fx = byId("fxLayer"); if(!fx) return;
+  fx.innerHTML = "";
+  const W = fx.clientWidth, H = fx.clientHeight;
+  const stage = byId("stage");
+  const q = sess.lv.questions[sess.idx];
+  const sun = q.scene.sun;
+  const cloud = q.scene.clouds && q.scene.clouds[0];
+  const sx = sun&&sun.r>0 ? sun.x : (cloud?cloud.x:50);
+  const sy = sun&&sun.r>0 ? sun.y : (cloud?cloud.y:35);
+
+  const mk = (cls,style)=>{ const d=document.createElement("div"); d.className=cls; d.style.cssText=style; fx.appendChild(d); return d; };
+  const dot = (x,y,size,color,dx,dy,dur,delay,anim)=>{
+    mk("p",`left:${x}%;top:${y}%;width:${size}px;height:${size}px;background:${color};--dx:${dx}px;--dy:${dy}px;`+
+      `animation:${anim} ${dur}ms cubic-bezier(.22,.7,.3,1) ${delay}ms forwards;`);
+  };
+  const bloom = (x,y,size,color,dur)=> mk("fx-bloom",
+    `left:${x}%;top:${y}%;width:${size}px;height:${size}px;background:radial-gradient(circle,${color},transparent 70%);animation:bloomPop ${dur}ms ease-out forwards;`);
+  const veil = (bg,op,rise)=> mk("fx-veil",`background:${bg};--vop:${op};animation:${rise?'veilRise':'veilIn'} 900ms ease-out forwards;`);
+
+  switch(type){
+    case "rayleigh":{
+      bloom(sx,sy,W*0.5,"rgba(150,200,255,.5)",1400);
+      for(let i=0;i<30;i++){ const a=Math.PI*2*i/30+Math.random(); const r=60+Math.random()*120;
+        dot(sx,sy,4+Math.random()*4,i%4?"#bfe3ff":"#7ab8f0",Math.cos(a)*r,Math.sin(a)*r,1100+Math.random()*400,i*20,"scatterFade"); }
+      break; }
+    case "longpath":{
+      // 긴 대각 빔
+      const beam = mk("fx-beam",`left:6%;top:26%;width:${W*1.05}px;height:14px;border-radius:8px;
+        background:linear-gradient(90deg,rgba(255,220,150,0),rgba(255,180,90,.85),rgba(224,102,58,.9));
+        transform:rotate(34deg);animation:beamIn 1200ms ease-out forwards;`);
+      veil("radial-gradient(ellipse at 50% 80%,rgba(224,102,58,.35),transparent 70%)",.6,true);
+      for(let i=0;i<16;i++){ // 파랑이 옆으로 빠져나감
+        dot(45+Math.random()*20,40+Math.random()*20,4+Math.random()*3,"#8fb8e8",-(60+Math.random()*80),40+Math.random()*60,1100,i*45,"drainFall"); }
+      break; }
+    case "mie":{
+      bloom(sx,sy,W*0.45,"rgba(255,255,255,.7)",1200);
+      for(let i=0;i<26;i++){ const a=Math.PI*2*i/26; const r=50+Math.random()*90;
+        dot(sx,sy,5+Math.random()*4,"#ffffff",Math.cos(a)*r,Math.sin(a)*r,1000+Math.random()*400,i*22,"scatterFade"); }
+      break; }
+    case "thick":{
+      veil("linear-gradient(180deg,rgba(30,34,40,.55),rgba(20,24,30,.15))",.7,false);
+      for(let i=0;i<14;i++){ dot(30+Math.random()*45,30,3+Math.random()*2,"#c0c6cc",(Math.random()-.5)*30,60+Math.random()*70,1200,i*40,"drainFall"); }
+      break; }
+    case "dust":{
+      veil("rgba(200,160,70,.35)",.6,false);
+      for(let i=0;i<22;i++){ dot(Math.random()*100,20+Math.random()*60,6+Math.random()*6,i%3?"#d9b45a":"#c69a3a",
+        (Math.random()-.3)*90,(Math.random()-.5)*30,1300,i*35,"driftFade"); }
+      break; }
+    case "fog":{
+      veil("radial-gradient(ellipse at 50% 60%,rgba(255,255,255,.75),rgba(255,255,255,.35))",.8,true);
+      for(let i=0;i<16;i++){ dot(Math.random()*100,40+Math.random()*40,10+Math.random()*8,"rgba(255,255,255,.8)",
+        (Math.random()-.5)*40,-(20+Math.random()*30),1400,i*40,"driftFade"); }
+      break; }
+    case "rainbow":{
+      const cols=["#e0392e","#e0842e","#e0c02e","#3f9e3a","#2f7fd6","#3f4fb0","#8b46d6"];
+      const cx=50, base=Math.min(W*0.62,H*1.1);
+      cols.forEach((c,i)=>{
+        const size=base - i*14;
+        mk("fx-arc",`left:${cx}%;bottom:2%;width:${size}px;height:${size/2}px;border-width:8px;border-color:${c};
+          animation:arcDraw 900ms ease-out ${i*80}ms forwards;`);
+      });
+      break; }
+    case "bluehour":{
+      veil("linear-gradient(180deg,rgba(13,27,74,.5),rgba(42,63,138,.25))",.7,true);
+      bloom(50,96,W*0.6,"rgba(230,150,90,.4)",1400);
+      for(let i=0;i<18;i++){ dot(Math.random()*100,Math.random()*70,3+Math.random()*3,"#7f9fe0",(Math.random()-.5)*40,(Math.random()-.5)*40,1200,i*30,"scatterFade"); }
+      break; }
+    case "green":{
+      veil("radial-gradient(ellipse at 50% 55%,rgba(120,180,90,.5),rgba(90,140,70,.2))",.7,true);
+      bloom(cloud?cloud.x:50,cloud?cloud.y:45,W*0.5,"rgba(150,200,110,.55)",1400);
+      for(let i=0;i<20;i++){ const a=Math.PI*2*i/20; const r=40+Math.random()*80;
+        dot(cloud?cloud.x:50,cloud?cloud.y:45,5+Math.random()*4,i%2?"#a8d86a":"#7fb84a",Math.cos(a)*r,Math.sin(a)*r,1200,i*30,"scatterFade"); }
+      break; }
+    case "aerosol":{
+      veil("radial-gradient(ellipse at "+sx+"% "+sy+"%,rgba(224,80,42,.45),transparent 65%)",.7,false);
+      bloom(sx,sy,W*0.5,"rgba(224,80,42,.55)",1400);
+      for(let i=0;i<24;i++){ const a=Math.PI*2*i/24; const r=50+Math.random()*100;
+        dot(sx,sy,7+Math.random()*6,i%3?"#e0704a":"#c0503a",Math.cos(a)*r,Math.sin(a)*r,1200,i*25,"scatterFade"); }
+      break; }
+    case "aurora":{
+      const cols=["linear-gradient(180deg,rgba(80,240,150,.85),rgba(40,180,120,0))",
+                  "linear-gradient(180deg,rgba(120,220,255,.7),rgba(60,160,220,0))",
+                  "linear-gradient(180deg,rgba(200,120,255,.7),rgba(150,80,220,0))",
+                  "linear-gradient(180deg,rgba(80,240,150,.75),rgba(40,180,120,0))"];
+      cols.forEach((c,i)=>{
+        const x=12+i*24, w=W*0.16;
+        mk("fx-curtain",`left:${x}%;width:${w}px;background:${c};
+          animation:curtainWave ${1800+i*120}ms ease-in-out ${i*120}ms forwards;`);
+      });
+      break; }
+    case "halo":{
+      const ring = Math.min(W*0.5,H*0.9);
+      mk("fx-ring",`left:${sx}%;top:${sy}%;width:${ring}px;height:${ring}px;
+        border:5px solid rgba(255,255,255,.55);box-shadow:0 0 18px rgba(255,240,200,.6),inset 0 0 14px rgba(255,180,120,.4);
+        animation:ringPop 1100ms cubic-bezier(.22,1,.36,1) forwards;`);
+      mk("fx-ring",`left:${sx}%;top:${sy}%;width:${ring-10}px;height:${ring-10}px;
+        border:3px solid rgba(255,190,140,.5);animation:ringPop 1100ms cubic-bezier(.22,1,.36,1) 100ms forwards;`);
+      for(let i=0;i<12;i++){ const a=Math.PI*2*i/12; const r=ring/2;
+        dot(sx,sy,4,"rgba(255,255,255,.9)",Math.cos(a)*r,Math.sin(a)*r,1000,i*30,"scatterFade"); }
+      break; }
+  }
+  // reduced motion: 입자를 최종 상태로 잠깐 보였다 정리
+  // 입자는 정리하고, 원리 그림(베일·무지개·무리·빔·오로라 커튼)은 옅게 남겨 '결과 하늘'로 유지
+  const life = reduced()?300:1800;
+  setTimeout(()=>{
+    if(byId("fxLayer")!==fx) return;
+    fx.querySelectorAll(".p,.fx-bloom").forEach(n=>n.remove());
+    fx.querySelectorAll(".fx-veil,.fx-arc,.fx-ring,.fx-beam,.fx-curtain").forEach(n=>{
+      if(n.classList.contains("fx-curtain")){ n.style.animation=reduced()?"none":"curtainIdle 3.4s ease-in-out infinite"; n.style.opacity=".5"; return; }
+      // 애니메이션 진행도와 무관하게 종류별 '남길 상태'를 명시(숨은 탭 등에서 애니메이션이 멈춰도 안전)
+      const keep = n.classList.contains("fx-arc")  ? {o:.6, tf:"translate(-50%,0)"}
+                 : n.classList.contains("fx-ring") ? {o:.55,tf:"translate(-50%,-50%)"}
+                 : n.classList.contains("fx-beam") ? {o:.3}
+                 : {o:(parseFloat(n.style.getPropertyValue("--vop"))||.5)*.55, tf:"none"};
+      n.style.animation="none"; if(keep.tf) n.style.transform=keep.tf;
+      n.style.transition="opacity .9s ease"; n.style.opacity=keep.o.toFixed(2);
+    });
+  }, life);
+}
+
+/* ══════════════════════════════════════════════════════
+   도감
+   ══════════════════════════════════════════════════════ */
+function renderDex(){
+  const found = state.found.length;
+  byId("dexBar").style.width = (found/12*100)+"%";
+  const rEmoji = {common:"◍",rare:"◆",epic:"✦"};
+  const rName = {common:"흔함",rare:"드묾",epic:"희귀"};
+  byId("dexBody").innerHTML = LEVELS.map(l=>{
+    const cards = l.questions.map(q=>{
+      const got = isFound(q.id);
+      const sc = q.scene;
+      let sunHtml="";
+      if(got && sc.sun && sc.sun.r>0){
+        sunHtml = `<div class="ds-sun" style="left:${sc.sun.x}%;top:${sc.sun.y}%;width:14px;height:14px;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff,${sc.sun.c});box-shadow:0 0 8px 2px ${sc.sun.g}"></div>`;
+      }
+      if(got){
+        return `<div class="dex-card found" data-q="${q.id}">
+          <div class="dex-sky" style="background:${sc.sky}">
+            ${sunHtml}
+            <span class="dex-rarity ${q.rarity}">${rEmoji[q.rarity]} ${rName[q.rarity]}</span>
+          </div>
+          <b>${q.card}</b><span class="dp">${q.cardNote}</span></div>`;
+      }
+      return `<div class="dex-card locked">
+        <div class="dex-sky"><span class="dex-lock">🔒</span></div>
+        <b>? ? ?</b><span class="dp">미발견</span></div>`;
+    }).join("");
+    const done = l.questions.filter(q=>isFound(q.id)).length;
+    return `<div class="dex-group"><h3>${l.emoji} ${l.name} <span style="color:var(--muted-dark);font-weight:800">${done}/${l.questions.length}</span></h3>
+      <div class="dex-grid">${cards}</div></div>`;
+  }).join("");
+  byId("dexBody").querySelectorAll(".dex-card.found").forEach(c=>{
+    c.addEventListener("click",()=>openModal(c.dataset.q));
+  });
+}
+function openModal(qid){
+  const q = findQ(qid); const sc = q.scene;
+  let sunHtml="";
+  if(sc.sun&&sc.sun.r>0) sunHtml=`<div class="ms-sun" style="left:${sc.sun.x}%;top:${sc.sun.y}%;width:${sc.sun.r*1.3}px;height:${sc.sun.r*1.3}px;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff,${sc.sun.c});box-shadow:0 0 20px 6px ${sc.sun.g}"></div>`;
+  const rEmoji={common:"◍",rare:"◆",epic:"✦"}[q.rarity];
+  const rc={common:"흔한 현상",rare:"드문 현상",epic:"희귀 현상"}[q.rarity];
+  byId("modalCard").innerHTML = `
+    <div class="modal-sky" style="background:${sc.sky}">${sunHtml}${sc.horizon?`<div class="horizon" style="background:linear-gradient(180deg,${sc.horizon},${shade(sc.horizon,-.25)})"></div>`:''}</div>
+    <div class="modal-body">
+      <span class="q-rarity ${q.rarity}">${rEmoji} ${rc}</span>
+      <h3>${q.card}</h3>
+      <p><b>${q.cardNote}</b> — ${q.explain}</p>
+      <button class="modal-close" id="modalClose">닫기</button>
+    </div>`;
+  byId("modalCard").classList.remove("small");
+  byId("modal").classList.add("show"); SkySFX.play("open");
+  byId("modalClose").addEventListener("click",closeModal);
+}
+function closeModal(){ if(byId("modal").classList.contains("show")) SkySFX.play("close"); byId("modal").classList.remove("show"); }
+
+/* ══════════════════════════════════════════════════════
+   이벤트 바인딩
+   ══════════════════════════════════════════════════════ */
+byId("dexBtn").addEventListener("click",()=>{SkySFX.play("page");renderDex();show("dex");});
+byId("dexBtn2").addEventListener("click",()=>{SkySFX.play("page");renderDex();show("dex");});
+byId("dexBack").addEventListener("click",()=>{SkySFX.play("page");renderMenu();show("menu");});
+byId("sfxBtn").addEventListener("click",()=>{ SkySFX.setMuted(!SkySFX.muted); paintSfx(); SkySFX.play("tap"); });
+document.addEventListener("pointerdown",()=>SkySFX.unlock(),{once:true});
+paintSfx();
+byId("quitBtn").addEventListener("click",()=>askConfirm({ic:"🚪",title:"메뉴로 나갈까요?",msg:"이번 단계 진행은 저장되지 않아요.<br>수집한 도감은 그대로 유지됩니다.",ok:"나가기",onOk:goMenu}));
+byId("resetBtn").addEventListener("click",()=>askConfirm({ic:"🗑️",title:"기록을 초기화할까요?",msg:"모든 도감·콤보 기록이 지워지고 되돌릴 수 없어요.",ok:"초기화",danger:true,
+  onOk:()=>{ state={found:[],bestCombo:0}; save(); renderMenu(); }}));
+byId("modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeModal(); }});
+window.addEventListener("resize",()=>{
+  // 게임 중이면 무대 다시 렌더(비율 유지)
+  if(screens.game.classList.contains("active") && sess && !sess.answered && byId("stage").parentElement.style.display!=="none"){
+    const q=sess.lv.questions[sess.idx]; renderStage(byId("stage"),q.scene,{interactive:true}); bindStage(q);
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   시작
+   ══════════════════════════════════════════════════════ */
+renderMenu();
+window.addEventListener("load",()=>{
+  setTimeout(()=>byId("loader").classList.add("hide"),700);
+});
+setTimeout(()=>byId("loader").classList.add("hide"),1800); // load 이벤트 누락 대비
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# 이전 버전 백업
+versions/
+# 개선 작업용 자료(계획서·사운드 랩·검증 스크립트)
+_개선준비/
+# OS/에디터
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
